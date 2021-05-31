@@ -447,4 +447,4 @@ if debug:
 
 criar_arquivo("enderecosInteiros.txt")
 arq = "enderecosInteiros.txt"
-conversao_hexa_inteiro("testeEnderecos.txt", arq)
+conversao_hexa_inteiro("enderecosHexadecimal.txt", arq)
