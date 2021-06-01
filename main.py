@@ -1,6 +1,8 @@
+
 import argparse, random, re
+contador_falsos_positivos = 0
 
-
+"""comando de teste: python main.py --total_cache 4 --tipo_mapeamento=AS --arquivo_acesso=enderecosInteiros.txt --debug 1 --politica_substituicao LRU"""
 def existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria):
     """Verifica se existe na cache uma posição de memória que ainda não foi utilizada,
     se existir, essa posição é retornada.
@@ -41,7 +43,7 @@ def print_cache_associativo(cache):
     print("|Posição Cache | Posição Memória|")
     print("+-------------+-----------------+")
     for posicao, valor in cache.items():
-        print("|{:>14}|{:>16}|".format(posicao, valor))
+        print("|{:>14}|{:>16}|".format(hex(posicao), hex(valor)))
     print("+-------------+-----------------+")
 
 
@@ -69,7 +71,7 @@ def inicializar_cache(total_cache):
     Returns:
       [list] -- [dicionário]
     """
-    # zera tota a memória cache
+    # zera total a memória cache
     memoria_cache = {}
 
     # popula a memória cache com o valor -1, isso indica que a posição não foi usada
@@ -80,8 +82,7 @@ def inicializar_cache(total_cache):
 
 
 def verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, posicao_memoria, ):
-    """Verifica se uma determinada posição de memória está na cache
-      no modo associativo / associativo por conjunto
+    """Verifica se uma determinada posição de memória está na cache no modo associativo / associativo por conjunto
     Arguments:
       memoria_cache {list} -- memória cache
       qtd_conjuntos {int} -- número de conjuntos do cache
@@ -132,8 +133,9 @@ def politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria
         proxima_posicao = posicao_cache + qtd_conjuntos
         if proxima_posicao < len(memoria_cache):
             memoria_cache[posicao_cache] = memoria_cache[proxima_posicao]
-
     # coloca a posição que acabou de ser lida na topo da lista, assim, ela nesse momento é a última que será removida
+        verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
+
     memoria_cache[lista_posicoes[-1]] = posicao_memoria
 
     if debug:
@@ -158,7 +160,7 @@ def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria,
     for posicao_cache in lista_posicoes:
         if posicao_cache_hit <= posicao_cache:
             # em uma cache com 4 conjuntos e 20 posições, as posições do 'conjunto 0' são:
-            # [0, 4, 8, 12, 16], se o hit for na poição 4, então, então, será necessário copiar os dados da posição
+            # [0, 4, 8, 12, 16], se o hit for na posição 4, então, então, será necessário copiar os dados da posição
             # 0 não faz nada
             # 4 <- 8
             # 8 <- 12
@@ -167,6 +169,8 @@ def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria,
             proxima_posicao = posicao_cache + qtd_conjuntos
             if proxima_posicao < len(memoria_cache):
                 memoria_cache[posicao_cache] = memoria_cache[proxima_posicao]
+
+        verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
 
     # coloca no topo da pilha a posição de memória que acabou de ser lida
     memoria_cache[lista_posicoes[-1]] = posicao_memoria
@@ -316,6 +320,17 @@ def criar_arquivo (nome):
 
 
 
+def verificar_falsos_positivos (memoria_cache, contador_falsos_positivos):
+
+    for posicao, valor in memoria_cache.items():
+        for posicao2, valor2 in memoria_cache.items():
+            #print(f'Valor for externo: {j}\nValor for interno: {l}.')
+            if (valor == valor2) and (posicao != posicao2):
+                contador_falsos_positivos += 1
+                #print("Houve um falso positivo!\n")
+    return contador_falsos_positivos
+
+
 
 ##########################
 # O programa começa aqui!
@@ -448,3 +463,6 @@ if debug:
 criar_arquivo("enderecosInteiros.txt")
 arq = "enderecosInteiros.txt"
 conversao_hexa_inteiro("enderecosHexadecimal.txt", arq)
+#memoria_cache = inicializar_cache(total_cache)
+#contador_falsos_positivos = verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
+#print(f'\n\nForam encontrados \033[31m{contador_falsos_positivos}\033[m falsos positivos na implementação.')
