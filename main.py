@@ -523,7 +523,7 @@ arq_binarios = "enderecosBinarios.txt"
 conversao_hexa_inteiro(arq_inteiros, "enderecosHexadecimal.txt")
 conversao_inteiro_binario(arq_inteiros, arq_binarios)
 
-# memoria_cache = inicializar_cache(total_cache)
+# memoria_cache = inicializar_cache(total_cache) 
 # contador_falsos_positivos = verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
 
 print(f'\n\nForam encontrados \033[31m{contador_falsos_positivos}\033[m falsos positivos na implementação.')
