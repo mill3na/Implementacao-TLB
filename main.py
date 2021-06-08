@@ -1,6 +1,6 @@
-
 import argparse, random, re
 contador_falsos_positivos = 0
+arq_binarios = "enderecosBinarios.txt"
 
 """comando de teste: python main.py --total_cache 4 --tipo_mapeamento=AS --arquivo_acesso=enderecosInteiros.txt --debug 1 --politica_substituicao LRU"""
 def existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria):
@@ -134,6 +134,9 @@ def politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria
         if proxima_posicao < len(memoria_cache):
             memoria_cache[posicao_cache] = memoria_cache[proxima_posicao]
     # coloca a posição que acabou de ser lida na topo da lista, assim, ela nesse momento é a última que será removida
+
+    for posicao_cache in lista_posicoes:
+        injetar_falsos_positivos(arq_binarios , total_cache)
         verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
 
     memoria_cache[lista_posicoes[-1]] = posicao_memoria
@@ -170,6 +173,8 @@ def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria,
             if proxima_posicao < len(memoria_cache):
                 memoria_cache[posicao_cache] = memoria_cache[proxima_posicao]
 
+    for posicao_cache in lista_posicoes:
+        injetar_falsos_positivos(arq_binarios, total_cache)
         verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
 
     # coloca no topo da pilha a posição de memória que acabou de ser lida
@@ -296,40 +301,89 @@ def executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 
     # que é igual ao modo associativo padrão! :) SHAZAM
     executar_mapeamento_associativo_conjunto(total_cache, 1, posicoes_memoria_para_acessar, politica_substituicao)
 
+
 def conversao_hexa_inteiro(origem, destino):
     try:
         a = open(origem, 'rt')
     except:
         print("Erro ao abrir o arquivo de endereços!")
     else:
-        dado = []
-        for linha in a:
-            aux = linha
-            aux = linha.replace("\n", '')
-            integer = (int(aux, 0))
+        with open(destino, 'w') as b:
+            for linha in a:
+                aux = linha
+                aux = linha.replace("\n", '')
+                aux = int(aux)
+                hexadecimal = (hex(aux))
+                b.write(f'{hexadecimal}\n')
 
-            with open(destino, 'at') as b:
-                b.write(f'{integer}\n')
+
 
 def criar_arquivo (nome):
     try:
-        a = open(nome, '+wt')
+        a = open(nome, 'a')
         a.close()
     except:
         print("Houve um erro na criação do arquivo.")
 
 
 
-def verificar_falsos_positivos (memoria_cache, contador_falsos_positivos):
-
+def verificar_falsos_positivos(memoria_cache, contador_falsos_positivos):
     for posicao, valor in memoria_cache.items():
         for posicao2, valor2 in memoria_cache.items():
-            #print(f'Valor for externo: {j}\nValor for interno: {l}.')
+            # print(f'Valor for externo: {valor}.\nValor for interno: {valor2}.')
             if (valor == valor2) and (posicao != posicao2):
                 contador_falsos_positivos += 1
-                #print("Houve um falso positivo!\n")
+                # print("Houve um falso positivo!\n")
     return contador_falsos_positivos
 
+
+def injetar_falsos_positivos(arq_binarios, tamanho_da_cache):
+
+    try:
+        a = open(arq_binarios, 'rt')
+    except:
+        print("Erro ao ler o arquivo.")
+    else:
+        nova = []
+        for linha in a:
+            dado = linha.split(';')
+            dado[0] = dado[0].replace('\n', '')
+            retirar = [" ", ",", "[", "]"]
+            for i in dado[0]:
+                if i not in retirar:
+                    nova.append(i)
+        tamanho_da_palavra = 31
+        linha_injecao_de_erro = random.randint(0, tamanho_da_cache - 1)
+        bit_injecao_de_erro = random.randint(2, tamanho_da_palavra)
+        '''if nova[bit_injecao_de_erro] == "0":
+            nova[bit_injecao_de_erro] = "1"
+        else:
+            nova[bit_injecao_de_erro] = "0"'''
+        erro_aleatorio = str(random.randint(0, 1))
+        if nova[bit_injecao_de_erro] != erro_aleatorio:
+            print(f'\033[31mHouve um erro aqui.\033[m')
+            print(f'Erro na linha {linha_injecao_de_erro}, bit alterado: {bit_injecao_de_erro}.')
+        nova[bit_injecao_de_erro] = erro_aleatorio
+        return nova
+
+
+
+
+
+def conversao_inteiro_binario(origem, destino):
+    try:
+        a = open(origem, 'rt')
+    except:
+        print("Erro ao abrir o arquivo de endereços!")
+    else:
+        with open(destino, 'w') as b:
+            for linha in a:
+                aux = linha
+                aux = linha.replace("\n", '')
+                aux = int(aux)
+                binario = (bin(aux))
+                b.write(f'{binario}\n')
+#at
 
 
 ##########################
@@ -461,8 +515,15 @@ if debug:
     print('-' * 80)
 
 criar_arquivo("enderecosInteiros.txt")
-arq = "enderecosInteiros.txt"
-conversao_hexa_inteiro("enderecosHexadecimal.txt", arq)
-#memoria_cache = inicializar_cache(total_cache)
-#contador_falsos_positivos = verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
-#print(f'\n\nForam encontrados \033[31m{contador_falsos_positivos}\033[m falsos positivos na implementação.')
+criar_arquivo("enderecosBinarios.txt")
+criar_arquivo("enderecosHexadecimal.txt")
+arq_inteiros = "enderecosInteiros.txt"
+arq_binarios = "enderecosBinarios.txt"
+
+conversao_hexa_inteiro(arq_inteiros, "enderecosHexadecimal.txt")
+conversao_inteiro_binario(arq_inteiros, arq_binarios)
+
+# memoria_cache = inicializar_cache(total_cache)
+# contador_falsos_positivos = verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
+
+print(f'\n\nForam encontrados \033[31m{contador_falsos_positivos}\033[m falsos positivos na implementação.')
