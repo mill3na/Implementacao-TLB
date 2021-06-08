@@ -17,7 +17,7 @@ Este código simula o funcionamento de uma memória cache, com o preenchimento d
 - [x] Preenchimento dos endereços
 - [x] Algoritmo de substituição
 - [x] Contagem de HIT e MISS
-- [ ] Contagem de Falsos Positivos
+- [x] Contagem de Falsos Positivos
 - [ ] Mecanismo de injeção de falhas
 - [ ] Teste com código de correção de erros
 
