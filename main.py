@@ -1,6 +1,126 @@
 import argparse, random, re
+from bitstring import BitArray
+
 contador_falsos_positivos = 0
 arq_binarios = "enderecosBinarios.txt"
+
+#
+#
+#
+
+def gerar_falhas_cache(memoria_cache, index):
+    """essa é uma versão café com leite que gera falha no index=4
+    posição 0, bit 3 (posicao 29)
+    """
+    if ( index != 4 ):
+        return -1
+    
+    p = memoria_cache[0] #pega o valor binario codificado direto na list memoria_cache
+    if ( p[29]=='0'):
+        p=muda_bit(p,29,'1')
+    else:
+        p=muda_bit(p,29,'0')
+
+    p=muda_bit(p,0,'1') #sinaliza que tem um erro nessa palavra
+
+    
+    memoria_cache[0] = p #substitui o valor binario codificado direto na list memoria_cache
+    
+    return 1
+
+
+def ler_cache(memoria_cache, posicao, codigo):  
+    palavra = memoria_cache[posicao]
+    p, e = decodifica_palavra(palavra,codigo)
+    return p, int(palavra[0])
+
+def escreve_cache(memoria_cache, posicao, palavra, codigo):
+    p = codifica_palavra(palavra,codigo)
+    memoria_cache[posicao] = p
+
+def codifica_palavra(palavra, codigo):
+    """ pega um valor inteiro e põe em um código corretor de erro (binario no formato de string)
+    Bit0 Bit1 Bit2-33
+    E    P     DADOS
+    E - indica que o um erro foi inserido na cache
+    P - bit de paridade
+    DADOS - dados armazenados
+    Arguments:
+      palavra {int} -- 
+      codigo {int} -- seleciona um dos codigos disponíveis, no momento apenas paridade simples
+    Returns:
+      [string] -- retorna um binário representado em string
+    """
+    word = '{:034b}'.format(palavra& 0x3ffffffff) #põe a palavra como 34 bits em binario {string}
+    #print("Palavra em bits", word)
+    p = calcula_paridade(word)
+    return muda_bit(word,1,p)
+
+def decodifica_palavra(palavra,codigo):
+    """ pega uma palavra em um código corretor de erro (binario no formato de string) e transforma em inteiro
+    Arguments:
+      palavra {string} --  binario codificado
+      codigo {int} -- seleciona um dos codigos disponíveis, no momento apenas paridade simples
+      erro {int} -- indica se houve erro na decodificação
+    Returns:
+      [int] -- retorna o valor inteiro decodificado
+      [int] -- 1 erro, 0 sem erro
+    """
+    if (checa_paridade(palavra)==1):
+        return 0,1
+    else:
+        b = BitArray(bin=palavra[2:])
+        return b.int, 0
+
+def muda_bit(palavra, posicao, valor):
+    """modifica o valor de um bit na posição de uma palavra. A palavra é um número binário representado por uma string
+    Arguments:
+      palavra -- binário representado em uma string
+      posicao {int} -- posicao do bit que vai ser mudado, lembrando que o bit 0 é o MSB
+      valor {int} -- valor 1 ou valor 0
+    Returns:
+      [string] -- retorna um binário representado em string
+    """
+
+    string_list = list(palavra)
+    if ( valor == 1 ):
+        string_list[posicao] = '1'
+    else:
+        string_list[posicao] = '0'
+    return "".join(string_list)  
+
+def calcula_paridade(palavra):
+    """calcula a paridade par de um binario representado como string, assume que o bit 1 [MSB+1] é a paridade. então,
+    calcula do bit 1 ao último
+    Bit0 Bit1 Bit2-33
+    E    P     DADOS
+    E - indica que o um erro foi inserido na cache
+    P - bit de paridade
+    DADOS - dados armazenados
+    Arguments:
+      palavra -- binário representado em uma string
+    Returns:
+      [int] -- retorna a paridade par
+    """ 
+    sum = 0
+    for i in range(2,len(palavra)):
+        sum = sum + int(palavra[i])
+    return sum%2
+
+def checa_paridade(palavra):
+    """checa a paridade par de um binario representado como string. A paridade fica no bit 1 (MSB+1, bit mais a esquerda da string)
+    Arguments:
+      palavra -- binário representado em uma string
+    Returns:
+      [int] -- 1 erro, 0 sem erro
+    """     
+    p = calcula_paridade(palavra)   
+    #print("paridade calculada",p)
+    if ( p == int(palavra[1])):
+        #print("sem erro")
+        return 0 #sem erro
+    #print("com erro")
+    return 1 #com erro  
 
 """comando de teste: python main.py --total_cache 4 --tipo_mapeamento=AS --arquivo_acesso=enderecosInteiros.txt --debug 1 --politica_substituicao LRU"""
 def existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria):
@@ -18,7 +138,8 @@ def existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria):
 
     # verifica se alguma das posições daquele conjunto está vazia
     for x in lista_posicoes:
-        if memoria_cache[x] == -1:
+        palavra, erro = ler_cache(memoria_cache,x,0)
+        if palavra == -1:
             return x
     return -1
 
@@ -43,7 +164,8 @@ def print_cache_associativo(cache):
     print("|Posição Cache | Posição Memória|")
     print("+-------------+-----------------+")
     for posicao, valor in cache.items():
-        print("|{:>14}|{:>16}|".format(hex(posicao), hex(valor)))
+        palavra,erro = ler_cache(cache, posicao, 0)
+        print("|{:>14}|{:>16}|".format(hex(posicao), hex(palavra)))
     print("+-------------+-----------------+")
 
 
@@ -59,7 +181,8 @@ def print_cache_associativo_conjunto(cache, qtd_conjuntos):
     print("+-------+-------+--------------+")
     for posicao, valor in cache.items():
         num_conjunto = get_num_conjuno_posicao_memoria(posicao, qtd_conjuntos)
-        print("|{} \t|{:4}\t|\t   {:>4}|".format(posicao, num_conjunto, valor))
+        palavra,erro = ler_cache(cache, posicao, 0)
+        print("|{} \t|{:4}\t|\t   {:>4}|".format(posicao, num_conjunto, palavra))
     print("+-------+-------+--------------+")
 
 
@@ -76,7 +199,8 @@ def inicializar_cache(total_cache):
 
     # popula a memória cache com o valor -1, isso indica que a posição não foi usada
     for x in range(0, total_cache):
-        memoria_cache[x] = -1
+        #memoria_cache[x] = -1
+        escreve_cache(memoria_cache,x,-1,0)
 
     return memoria_cache
 
@@ -91,13 +215,14 @@ def verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos,
     num_conjunto = int(posicao_memoria) % int(qtd_conjuntos)
 
     while num_conjunto < len(memoria_cache):
-        if memoria_cache[num_conjunto] == posicao_memoria:
-            return num_conjunto
+        palavra, erro = ler_cache(memoria_cache, num_conjunto,0)
+        if palavra == posicao_memoria:
+            return num_conjunto, erro
 
         num_conjunto += qtd_conjuntos
 
     # não achou a posição de memória na cache
-    return -1
+    return -1, erro
 
 
 def get_lista_posicoes_cache_conjunto(memoria_cache, num_conjunto, qtd_conjuntos):
@@ -132,19 +257,22 @@ def politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria
     for posicao_cache in lista_posicoes:
         proxima_posicao = posicao_cache + qtd_conjuntos
         if proxima_posicao < len(memoria_cache):
+            #nesse caso, não precisa passar por escreve_cache e ler_cache, estamos copiando de uma posicao para outra
             memoria_cache[posicao_cache] = memoria_cache[proxima_posicao]
+            
     # coloca a posição que acabou de ser lida na topo da lista, assim, ela nesse momento é a última que será removida
 
-    for posicao_cache in lista_posicoes:
-        injetar_falsos_positivos(arq_binarios , total_cache)
-        verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
 
-    memoria_cache[lista_posicoes[-1]] = posicao_memoria
+    #memoria_cache[lista_posicoes[-1]] = posicao_memoria
+    #aqui a gente usa a função escreve_cache para que ele salve e deixe o bit ERRO zerado
+    #estamos sobreescrevendo uma posição da cache
+    escreve_cache(memoria_cache,lista_posicoes[-1],posicao_memoria,0)
 
     if debug:
         print('Posição Memória: {}'.format(posicao_memoria))
         print('Conjunto: {}'.format(num_conjunto))
         print('Lista posições: {}'.format(lista_posicoes))
+
 
 def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria, posicao_cache_hit):
     """Nessa politica de substituição quando ocorre um HIT a posição vai para o topo da fila,
@@ -171,11 +299,9 @@ def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria,
             # 16 <- 4
             proxima_posicao = posicao_cache + qtd_conjuntos
             if proxima_posicao < len(memoria_cache):
+                #não preciso usar ler_cache, nem escreve_cache, copiando de uma posição para outra
                 memoria_cache[posicao_cache] = memoria_cache[proxima_posicao]
 
-    for posicao_cache in lista_posicoes:
-        injetar_falsos_positivos(arq_binarios, total_cache)
-        verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
 
     # coloca no topo da pilha a posição de memória que acabou de ser lida
     memoria_cache[lista_posicoes[-1]] = posicao_memoria
@@ -207,28 +333,41 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
     else:
         nome_mapeamento = 'Associativo Por Conjunto'
         print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos)
+    
 
     num_hit = 0
     num_miss = 0
+    num_falso_positivo = 0
+    posicao_cache_falhas = {}
 
-    # se a política for fifo então inicializa a lista de controle
-
-  # if politica_substituicao == 'FIFO':
-  #     inicializar_contador_fifo()
-
-    # se a política for fifo então inicializa a lista de controle
-  #  if politica_substituicao == 'LFU':
-#     inicializar_contador_lfu()
 
     # percorre cada uma das posições de memória que estavam no arquivo
     for index, posicao_memoria in enumerate(posicoes_memoria_para_acessar):
+        #
+        #TODO
+        #Lógica de inserção de falhas tem que ser inserida aqui
+        #O ideal é inserir falhas aleatoriamente com uma dada taxa
+        #1 falha em 10.000 acessos, etc
+        #
+        #Nessa versão estou inserindo uma falha na 1 interação
+        #bit 2, posição 0 da cache
+        #
+        gerar_falhas_cache(memoria_cache, index)
+
         print('\n\n\nInteração número: {}'.format(index + 1))
-        # verificar se existe ou não a posição de memória desejada na cache
-        inserir_memoria_na_posicao_cache = verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, posicao_memoria)
+        # verificar se existe ou não a posição de memória desejada na cache, bem se o codigo detector de erro
+        #identificou algum erro na leitura
+        inserir_memoria_na_posicao_cache, erro = verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, posicao_memoria)
 
         # a posição desejada já está na memória
         if inserir_memoria_na_posicao_cache >= 0:
             num_hit += 1
+            #
+            #verifica se a posição está na lista de posições falhas, se estiver incrementa o contador de falsos positivos
+            #
+            if ( erro == 1 ):
+                num_falso_positivo+=1
+
             print('Cache HIT: posiçao de memória {}, posição cache {}'.format(posicao_memoria,
                                                                               inserir_memoria_na_posicao_cache))
 
@@ -257,7 +396,8 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             # se posicao_vazia for < 0 então devemos executar as políticas de substituição
             ########
             if posicao_vazia >= 0:
-                memoria_cache[posicao_vazia] = posicao_memoria
+                #memoria_cache[posicao_vazia] = posicao_memoria
+                escreve_cache(memoria_cache, posicao_vazia, posicao_memoria, 0)
                 '''
             elif politica_substituicao == 'RANDOM':
                 politica_substituicao_RANDOM(memoria_cache, qtd_conjuntos, posicao_memoria)
@@ -514,16 +654,3 @@ if debug:
     print("Step: {}".format(step))
     print('-' * 80)
 
-criar_arquivo("enderecosInteiros.txt")
-criar_arquivo("enderecosBinarios.txt")
-criar_arquivo("enderecosHexadecimal.txt")
-arq_inteiros = "enderecosInteiros.txt"
-arq_binarios = "enderecosBinarios.txt"
-
-conversao_hexa_inteiro(arq_inteiros, "enderecosHexadecimal.txt")
-conversao_inteiro_binario(arq_inteiros, arq_binarios)
-
-# memoria_cache = inicializar_cache(total_cache) 
-# contador_falsos_positivos = verificar_falsos_positivos(memoria_cache, contador_falsos_positivos)
-
-print(f'\n\nForam encontrados \033[31m{contador_falsos_positivos}\033[m falsos positivos na implementação.')
