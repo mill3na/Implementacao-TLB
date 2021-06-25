@@ -19,8 +19,10 @@ def gerar_falhas_cache(memoria_cache, index):
     p = memoria_cache[0] #pega o valor binario codificado direto na list memoria_cache
     if ( p[33]=='0'):
         p=muda_bit(p,33,1)
+        p=muda_bit(p,32,1)
     else:
         p=muda_bit(p,33,0)
+        p=muda_bit(p,32,0)
 
     p=muda_bit(p,0,1) #sinaliza que tem um erro nessa palavra
 
@@ -39,12 +41,14 @@ def gerar_falhas_cache(memoria_cache, index):
 
 def ler_cache(memoria_cache, posicao, codigo):  
     palavra = memoria_cache[posicao]
+    #print("valor da cache",palavra)
     p, e = decodifica_palavra(palavra,codigo)
-    return p, int(palavra[0]), e
+    return p, int(palavra[0])
 
 def escreve_cache(memoria_cache, posicao, palavra, codigo):
     p = codifica_palavra(palavra,codigo)
     memoria_cache[posicao] = p
+    #print("valor escrito na cache",p)
 
 def codifica_palavra(palavra, codigo):
     """ pega um valor inteiro e põe em um código corretor de erro (binario no formato de string)
@@ -60,7 +64,6 @@ def codifica_palavra(palavra, codigo):
       [string] -- retorna um binário representado em string
     """
     word = '{:034b}'.format(palavra& 0x3ffffffff) #põe a palavra como 34 bits em binario {string}
-    #print("Palavra em bits", word)
     p = calcula_paridade(word)
     return muda_bit(word,1,p)
 
@@ -222,6 +225,7 @@ def verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos,
       posicao_memoria {int} -- posição que se deseja acessar
     """
     num_conjunto = int(posicao_memoria) % int(qtd_conjuntos)
+    print("numero de conjunto", num_conjunto)
 
     while num_conjunto < len(memoria_cache):
         palavra, erro = ler_cache(memoria_cache, num_conjunto,0)
@@ -295,7 +299,8 @@ def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria,
     """
     num_conjunto = get_num_conjuno_posicao_memoria(posicao_memoria, qtd_conjuntos)
     lista_posicoes = get_lista_posicoes_cache_conjunto(memoria_cache, num_conjunto, qtd_conjuntos)
-
+    #salva o valor da posicao que foi acessada na cache em p
+    p = memoria_cache[posicao_cache_hit]
     # copiar os valores de cada posição da cache do conjunto em questão uma posição para traz
     for posicao_cache in lista_posicoes:
         if posicao_cache_hit <= posicao_cache:
@@ -313,7 +318,8 @@ def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria,
 
 
     # coloca no topo da pilha a posição de memória que acabou de ser lida
-    memoria_cache[lista_posicoes[-1]] = posicao_memoria
+    memoria_cache[lista_posicoes[-1]] = p
+    print("Posicao memoria", hex(posicao_memoria))
 
     if debug:
         print('Posição Memória: {}'.format(posicao_memoria))
