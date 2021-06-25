@@ -14,9 +14,9 @@ def gerar_falhas_cache(memoria_cache, index):
     """
     if ( index != 4 ):
         return -1
-    print(memoria_cache)        
+    #print(memoria_cache)        
     
-    p = memoria_cache[0] #pega o valor binario codificado direto na list memoria_cache
+    p = memoria_cache[3] #pega o valor binario codificado direto na list memoria_cache
     if ( p[33]=='0'):
         p=muda_bit(p,33,1)
         p=muda_bit(p,32,1)
@@ -27,8 +27,8 @@ def gerar_falhas_cache(memoria_cache, index):
     p=muda_bit(p,0,1) #sinaliza que tem um erro nessa palavra
 
     
-    memoria_cache[0] = p #substitui o valor binario codificado direto na list memoria_cache
-    print(memoria_cache)
+    memoria_cache[3] = p #substitui o valor binario codificado direto na list memoria_cache
+    #print(memoria_cache)
 
     if qtd_conjuntos == 1:
         print_cache_associativo(memoria_cache)
@@ -225,17 +225,18 @@ def verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos,
       posicao_memoria {int} -- posição que se deseja acessar
     """
     num_conjunto = int(posicao_memoria) % int(qtd_conjuntos)
-    print("numero de conjunto", num_conjunto)
-
+    
+    p = codifica_palavra(posicao_memoria, 0)
+    #CODIFFICA A POSICAO MEMORIA PARA COMPARAR COM O CONTEUDO DA CAM DA TLB
     while num_conjunto < len(memoria_cache):
-        palavra, erro = ler_cache(memoria_cache, num_conjunto,0)
-        if palavra == posicao_memoria:
-            return num_conjunto, erro
+        d = memoria_cache[num_conjunto]
+        if d[1:] == p[1:]:
+            return num_conjunto, p[0]
 
         num_conjunto += qtd_conjuntos
 
     # não achou a posição de memória na cache
-    return -1, erro
+    return -1, p[0]
 
 
 def get_lista_posicoes_cache_conjunto(memoria_cache, num_conjunto, qtd_conjuntos):
@@ -606,16 +607,9 @@ if len(posicoes_memoria_para_acessar) == 0:
     exit()
 
 print('+====================+')
-print('| SIMULADOR DE CACHE |')
+print('| SIMULADOR DE TLB |')
 print('+====================+')
-print('+ Setando parâmetros iniciais da cache+')
-
-if tipo_mapeamento != 'DI':
-    if politica_substituicao != 'RANDOM' and politica_substituicao != 'FIFO' and politica_substituicao != 'LRU' and politica_substituicao != 'LFU' and politica_substituicao != 'ALL':
-        print('\n\n------------------------------')
-        print('ERRO: A política de substituição {} não existe.'.format(politica_substituicao))
-        print('------------------------------')
-        exit()
+print('+ Setando parâmetros iniciais da TLB+')
 
 
 if tipo_mapeamento == 'AS':
