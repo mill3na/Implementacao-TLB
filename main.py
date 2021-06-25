@@ -8,7 +8,7 @@ arq_binarios = "enderecosBinarios.txt"
 #
 #
 
-def gerar_falhas_cache(memoria_cache, index):
+def gerar_falhas_cache(memoria_cache, index, numero_falhas_inseridas, frequencia_falhas_inseridas, tipo_falhas_inseridas, codigo):
     """essa é uma versão café com leite que gera falha no index=4
     posição 0, bit 3 (posicao 29)
     """
@@ -17,11 +17,11 @@ def gerar_falhas_cache(memoria_cache, index):
     #print(memoria_cache)        
     
     p = memoria_cache[3] #pega o valor binario codificado direto na list memoria_cache
-    if ( p[33]=='0'):
-        p=muda_bit(p,33,1)
+    if ( p[30]=='0'):
+        p=muda_bit(p,30,1)
         p=muda_bit(p,32,1)
     else:
-        p=muda_bit(p,33,0)
+        p=muda_bit(p,30,0)
         p=muda_bit(p,32,0)
 
     p=muda_bit(p,0,1) #sinaliza que tem um erro nessa palavra
@@ -29,12 +29,6 @@ def gerar_falhas_cache(memoria_cache, index):
     
     memoria_cache[3] = p #substitui o valor binario codificado direto na list memoria_cache
     #print(memoria_cache)
-
-    if qtd_conjuntos == 1:
-        print_cache_associativo(memoria_cache)
-    else:
-        nome_mapeamento = 'Associativo Por Conjunto'
-        print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos)    
     
     return 1
 
@@ -59,25 +53,83 @@ def codifica_palavra(palavra, codigo):
     DADOS - dados armazenados
     Arguments:
       palavra {int} -- 
-      codigo {int} -- seleciona um dos codigos disponíveis, no momento apenas paridade simples
+      codigo {int} -- seleciona um dos codigos disponíveis: PARIDADE_SIMPLES, PARIDADE_MSB, PARIDADE_2MSB
     Returns:
       [string] -- retorna um binário representado em string
     """
-    word = '{:034b}'.format(palavra& 0x3ffffffff) #põe a palavra como 34 bits em binario {string}
-    p = calcula_paridade(word)
-    return muda_bit(word,1,p)
+    if (codigo == 'PARIDADE_SIMPLES'):
+        return codifica_paridade_simples(palavra)
+    elif (codigo == 'PARIDADE_MSB'):
+        return codifica_paridade_msb(palavra)
+    else:
+        return codifica_paridade_2msb(palavra)
+
 
 def decodifica_palavra(palavra,codigo):
     """ pega uma palavra em um código corretor de erro (binario no formato de string) e transforma em inteiro
     Arguments:
       palavra {string} --  binario codificado
-      codigo {int} -- seleciona um dos codigos disponíveis, no momento apenas paridade simples
+      codigo {int} -- seleciona um dos codigos disponíveis: PARIDADE_SIMPLES, PARIDADE_MSB, PARIDADE_2MSB
       erro {int} -- indica se houve erro na decodificação
     Returns:
       [int] -- retorna o valor inteiro decodificado
       [int] -- 1 erro, 0 sem erro
     """
-    if (checa_paridade(palavra)==1):#detectamos um erro
+    if (codigo == 'PARIDADE_SIMPLES'):
+        return decodifica_paridade_simples(palavra)
+    elif (codigo == 'PARIDADE_MSB'):
+        return decodifica_paridade_msb(palavra)
+    else:
+        return decodifica_paridade_2msb(palavra)
+
+
+def codifica_paridade_msb(palavra):
+    """Formato | E | PARIDADE (MSB) | DADOS |
+        PARIDADE é calculada com todos os bits de dados inclusive o MSB
+        E é o flag que indica se uma falha foi inserida nessa palavra
+    """
+    word = '{:033b}'.format(palavra& 0x1ffffffff) #põe a palavra como 33 bits em binario {string}
+    p = calcula_paridade(word,1)
+    return muda_bit(word,1,p)
+
+def decodifica_paridade_msb(palavra):
+    b = BitArray(bin=palavra[1:]) 
+    return b.int, 0
+
+def codifica_paridade_2msb(palavra):
+    """Formato | E | PARIDADE EVEN (MSB) | PARIDADE ODD (MSB-1) | DADOS |
+        PARIDADE EVEN é calculada com bits 1,3,5,...
+        PARIDADE ODD é calculada com bits 2,4,6,...
+        E é o flag que indica se uma falha foi inserida nessa palavra
+    """
+    word = '{:033b}'.format(palavra& 0x1ffffffff) #põe a palavra como 34 bits em binario {string}
+    #calcula paridade dos bits 1,3,5,7,...,31
+    sum = 0
+    for i in range(1,len(word)):
+        if (i%2 != 0):
+            sum = sum + int(word[i])
+    p_even = sum%2
+    #calcula paridade dos bits 2,4,6,...,32
+    sum = 0
+    for i in range(1,len(word)):
+        if (i%2 == 0):
+            sum = sum + int(word[i])
+    p_odd = sum%2
+    word = muda_bit(word,1,p_even)
+
+    return muda_bit(word,2,p_odd)
+
+def decodifica_paridade_2msb(palavra):
+    b = BitArray(bin=palavra[1:]) 
+    return b.int, 0        
+
+def codifica_paridade_simples(palavra):
+    word = '{:034b}'.format(palavra& 0x3ffffffff) #põe a palavra como 34 bits em binario {string}
+    p = calcula_paridade(word,2)
+    return muda_bit(word,1,p)
+
+def decodifica_paridade_simples(palavra):
+    if (checa_paridade(palavra,2,1)==1):#detectamos um erro
         b = BitArray(bin=palavra[2:]) #houve erro, corrige invalidando a linha de cache
         return -1, 1
     else:
@@ -93,7 +145,6 @@ def muda_bit(palavra, posicao, valor):
     Returns:
       [string] -- retorna um binário representado em string
     """
-
     string_list = list(palavra)
     if ( valor == 1 ):
         string_list[posicao] = '1'
@@ -101,41 +152,39 @@ def muda_bit(palavra, posicao, valor):
         string_list[posicao] = '0'
     return "".join(string_list)  
 
-def calcula_paridade(palavra):
-    """calcula a paridade par de um binario representado como string, assume que o bit 1 [MSB+1] é a paridade. então,
-    calcula do bit 1 ao último
-    Bit0 Bit1 Bit2-33
-    E    P     DADOS
-    E - indica que o um erro foi inserido na cache
-    P - bit de paridade
-    DADOS - dados armazenados
+def calcula_paridade(palavra,posicao_inicial):
+    """calcula a paridade par de um binario representado como string, assume que o bit posicao_inicial-1 é a paridade. então,
+    calcula do bit posicao_inicial ao último
+      DADOS - dados armazenados
     Arguments:
       palavra -- binário representado em uma string
+      posicao_inicial -- posicao do primeiro bit de dados
     Returns:
       [int] -- retorna a paridade par
     """ 
     sum = 0
-    for i in range(2,len(palavra)):
+    for i in range(posicao_inicial,len(palavra)):
         sum = sum + int(palavra[i])
     return sum%2
 
-def checa_paridade(palavra):
-    """checa a paridade par de um binario representado como string. A paridade fica no bit 1 (MSB+1, bit mais a esquerda da string)
+def checa_paridade(palavra,posicao_inicial,posicao_paridade):
+    """checa a paridade par de um binario representado como string. A paridade fica no bit posicao_paridade, o primeiro
+    bit de dados fica em posical_inicial 
     Arguments:
       palavra -- binário representado em uma string
     Returns:
       [int] -- 1 erro, 0 sem erro
     """     
-    p = calcula_paridade(palavra)   
+    p = calcula_paridade(palavra,posicao_inicial)   
     #print("paridade calculada",p)
-    if ( p == int(palavra[1])):
+    if ( p == int(palavra[posicao_paridade])):
         #print("sem erro")
         return 0 #sem erro
     #print("com erro")
     return 1 #com erro  
 
 """comando de teste: python main.py --total_cache 4 --tipo_mapeamento=AS --arquivo_acesso=enderecosInteiros.txt --debug 1 --politica_substituicao LRU"""
-def existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria):
+def existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria, codigo):
     """Verifica se existe na cache uma posição de memória que ainda não foi utilizada,
     se existir, essa posição é retornada.
     Arguments:
@@ -150,7 +199,7 @@ def existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria):
 
     # verifica se alguma das posições daquele conjunto está vazia
     for x in lista_posicoes:
-        palavra, erro = ler_cache(memoria_cache,x,0)
+        palavra, erro = ler_cache(memoria_cache,x,codigo)
         if palavra == -1:
             return x
     return -1
@@ -165,7 +214,7 @@ def get_num_conjuno_posicao_memoria(posicao_memoria, qtd_conjuntos):
     return int(posicao_memoria) % int(qtd_conjuntos)
 
 
-def print_cache_associativo(cache):
+def print_cache_associativo(cache, codigo):
     """Imprime o estado da memória cache no modelo de mapeamento associativo.
     """
     print("+-------------------------------+")
@@ -176,12 +225,12 @@ def print_cache_associativo(cache):
     print("|Posição Cache | Posição Memória|")
     print("+-------------+-----------------+")
     for posicao, valor in cache.items():
-        palavra,erro = ler_cache(cache, posicao, 0)
+        palavra,erro = ler_cache(cache, posicao, codigo)
         print("|{:>14}|{:>16}|".format(hex(posicao), hex(palavra)))
     print("+-------------+-----------------+")
 
 
-def print_cache_associativo_conjunto(cache, qtd_conjuntos):
+def print_cache_associativo_conjunto(cache, qtd_conjuntos, codigo):
     """Imprime o estado da memória cache no modelo de mapeamento associativo por conjunto.
     """
     print("+------------------------------+")
@@ -193,12 +242,12 @@ def print_cache_associativo_conjunto(cache, qtd_conjuntos):
     print("+-------+-------+--------------+")
     for posicao, valor in cache.items():
         num_conjunto = get_num_conjuno_posicao_memoria(posicao, qtd_conjuntos)
-        palavra,erro = ler_cache(cache, posicao, 0)
+        palavra,erro = ler_cache(cache, posicao, codigo)
         print("|{} \t|{:4}\t|\t   {:>4}|".format(posicao, num_conjunto, palavra))
     print("+-------+-------+--------------+")
 
 
-def inicializar_cache(total_cache):
+def inicializar_cache(total_cache, codigo):
     """Cria uma memória cache zerada utilizando dicionários (chave, valor) e com
     valor padrão igual a '-1'
     Arguments:
@@ -212,12 +261,12 @@ def inicializar_cache(total_cache):
     # popula a memória cache com o valor -1, isso indica que a posição não foi usada
     for x in range(0, total_cache):
         #memoria_cache[x] = -1
-        escreve_cache(memoria_cache,x,-1,0)
+        escreve_cache(memoria_cache,x,-1,codigo)
 
     return memoria_cache
 
 
-def verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, posicao_memoria, ):
+def verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, posicao_memoria, codigo):
     """Verifica se uma determinada posição de memória está na cache no modo associativo / associativo por conjunto
     Arguments:
       memoria_cache {list} -- memória cache
@@ -226,7 +275,7 @@ def verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos,
     """
     num_conjunto = int(posicao_memoria) % int(qtd_conjuntos)
     
-    p = codifica_palavra(posicao_memoria, 0)
+    p = codifica_palavra(posicao_memoria, codigo)
     #CODIFFICA A POSICAO MEMORIA PARA COMPARAR COM O CONTEUDO DA CAM DA TLB
     while num_conjunto < len(memoria_cache):
         d = memoria_cache[num_conjunto]
@@ -255,7 +304,7 @@ def get_lista_posicoes_cache_conjunto(memoria_cache, num_conjunto, qtd_conjuntos
         posicao_inicial += qtd_conjuntos
     return lista_posicoes
 
-def politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria):
+def politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria, codigo):
     """Nessa politica de substituição quando ocorre um HIT a posição vai para o topo da fila,
     se ocorrer um MISS remove o elemento 0 e a posição da cache onde a memória foi alocada é
     colocada no topo da fila
@@ -280,7 +329,7 @@ def politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria
     #memoria_cache[lista_posicoes[-1]] = posicao_memoria
     #aqui a gente usa a função escreve_cache para que ele salve e deixe o bit ERRO zerado
     #estamos sobreescrevendo uma posição da cache
-    escreve_cache(memoria_cache,lista_posicoes[-1],posicao_memoria,0)
+    escreve_cache(memoria_cache,lista_posicoes[-1],posicao_memoria,codigo)
 
     if debug:
         print('Posição Memória: {}'.format(posicao_memoria))
@@ -288,7 +337,7 @@ def politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria
         print('Lista posições: {}'.format(lista_posicoes))
 
 
-def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria, posicao_cache_hit):
+def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria, posicao_cache_hit, codigo):
     """Nessa politica de substituição quando ocorre um HIT a posição vai para o topo da fila,
     se ocorrer um MISS remove o elemento 0 e a posição da cache onde a memória foi alocada é
     colocada no topo da fila
@@ -329,7 +378,7 @@ def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria,
 
 
 def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar,
-                                             politica_substituicao='RANDOM'):
+                                             politica_substituicao, codigo):
     """Executa a operação de mapeamento associativo, ou seja, não existe uma posição específica
     para o mapemento de uma posição de memória.
     Arguments:
@@ -339,16 +388,16 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
       politica_substituicao {str} -- Qual é a política para substituição caso a posição de memória desejada não esteja na cache E não exista espaço vazio
     """
 
-    memoria_cache = inicializar_cache(total_cache)
+    memoria_cache = inicializar_cache(total_cache, codigo)
 
     # se o número de conjuntos for igual a zero, então estamos simulando
     # com a cache associativo!
     nome_mapeamento = 'Associativo'
     if qtd_conjuntos == 1:
-        print_cache_associativo(memoria_cache)
+        print_cache_associativo(memoria_cache, codigo)
     else:
         nome_mapeamento = 'Associativo Por Conjunto'
-        print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos)
+        print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, codigo)
     
 
     num_hit = 0
@@ -368,12 +417,12 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
         #Nessa versão estou inserindo uma falha na 4° interação
         #bit 3, posição 0 da cache
         #
-        gerar_falhas_cache(memoria_cache, index)
+        gerar_falhas_cache(memoria_cache, index, numero_falhas_inseridas, frequencia_falhas_inseridas, tipo_falhas_inseridas, codigo)
 
         print('\n\n\nInteração número: {}'.format(index + 1))
         # verificar se existe ou não a posição de memória desejada na cache, bem se o codigo detector de erro
         #identificou algum erro na leitura
-        inserir_memoria_na_posicao_cache, erro = verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, posicao_memoria)
+        inserir_memoria_na_posicao_cache, erro = verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, posicao_memoria, codigo)
 
         # a posição desejada já está na memória
         if inserir_memoria_na_posicao_cache >= 0:
@@ -395,14 +444,14 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             # se for LRU então toda vez que der um HIT será incrementado o contador daquela posição
             if politica_substituicao == 'LRU':
                 politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria,
-                                              inserir_memoria_na_posicao_cache)
+                                              inserir_memoria_na_posicao_cache, codigo)
 
         else:
             num_miss += 1
             print('Cache MISS: posiçao de memória {}'.format(hex(posicao_memoria)))
 
             # verifica se existe uma posição vazia na cache, se sim aloca nela a posição de memória
-            posicao_vazia = existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria)
+            posicao_vazia = existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria, codigo)
 
             if debug:
                 print('Posição da cache ainda não utilizada: {}'.format(posicao_vazia))
@@ -413,7 +462,7 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             ########
             if posicao_vazia >= 0:
                 #memoria_cache[posicao_vazia] = posicao_memoria
-                escreve_cache(memoria_cache, posicao_vazia, posicao_memoria, 0)
+                escreve_cache(memoria_cache, posicao_vazia, posicao_memoria, codigo)
                 '''
             elif politica_substituicao == 'RANDOM':
                 politica_substituicao_RANDOM(memoria_cache, qtd_conjuntos, posicao_memoria)
@@ -422,12 +471,12 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             elif politica_substituicao == 'LFU':
                 politica_substituicao_LFU(memoria_cache, qtd_conjuntos, posicao_memoria)'''
             elif politica_substituicao == 'LRU':
-                politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria)
+                politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria, codigo)
 
         if qtd_conjuntos == 1:
-            print_cache_associativo(memoria_cache)
+            print_cache_associativo(memoria_cache,codigo)
         else:
-            print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos)
+            print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos,codigo)
 
         if step:
             print('Tecle ENTER para processar o próximo passo:')
@@ -446,7 +495,7 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
     print('Taxa de Cache HIT {number:.{digits}f}%'.format(number=taxa_cache_hit, digits=2))
 
 
-def executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, politica_substituicao):
+def executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, politica_substituicao, codigo):
     """O mapeamento associativo é um tipo de mapeamento associativo por conjunto
     ou o número de conjunto é igual a 1
     Arguments:
@@ -456,7 +505,7 @@ def executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 
     """
     # o número 1 indica que haverá apenas um único conjunto no modo associativo por conjunto
     # que é igual ao modo associativo padrão! :) SHAZAM
-    executar_mapeamento_associativo_conjunto(total_cache, 1, posicoes_memoria_para_acessar, politica_substituicao)
+    executar_mapeamento_associativo_conjunto(total_cache, 1, posicoes_memoria_para_acessar, politica_substituicao, codigo)
 
 
 def conversao_hexa_inteiro(origem, destino):
@@ -563,6 +612,20 @@ parser.add_argument('--debug', default=0,
 parser.add_argument('--step', default=0,
                     help='Solicita a interação do usuário após cada linha processada do arquivo --step 1.')
 
+parser.add_argument('--codigo', default=0,
+                    help='Qual código será utilizado na TLB: PARIDADE, MSB_1, MSB_2')
+
+parser.add_argument('--numero_falhas_inseridas', default=0,
+                    help='Número de falhas a serem inseridas na simulação')
+
+parser.add_argument('--frequencia_falhas_inseridas', default=0,
+                    help='Frequência na qual as falhas são inseridas')
+
+parser.add_argument('--tipo_falhas_inseridas', default=0,
+                    help='Tipo de falhas inseridas. Os parâmetros são: SIMPLES, DUPLA, DUPLA_ADJ, TRIPLA')
+
+
+
 args = parser.parse_args()
 
 # recuperar toos os parâmetros passados
@@ -573,6 +636,11 @@ qtd_conjuntos = args.qtd_conjuntos
 politica_substituicao = args.politica_substituicao.upper()
 debug = args.debug
 step = args.step
+codigo = args.codigo
+numero_falhas_inseridas = args.numero_falhas_inseridas
+frequencia_falhas_inseridas = args.frequencia_falhas_inseridas
+tipo_falhas_inseridas = args.tipo_falhas_inseridas
+
 
 if qtd_conjuntos <= 0:
     print('\n\n------------------------------')
@@ -614,12 +682,12 @@ print('+ Setando parâmetros iniciais da TLB+')
 
 if tipo_mapeamento == 'AS':
     if (politica_substituicao == 'ALL'):
-        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'RANDOM')
-        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'FIFO')
-        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'LRU')
-        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'LFU')
+        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'RANDOM', codigo)
+        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'FIFO', codigo)
+        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'LRU', codigo)
+        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'LFU', codigo)
     else:
-        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, politica_substituicao)
+        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, politica_substituicao, codigo)
 
 elif tipo_mapeamento == 'AC':
     # o número de conjuntos deve ser um divisor do total da memória
@@ -632,13 +700,13 @@ elif tipo_mapeamento == 'AC':
         exit()
 
     if (politica_substituicao == 'ALL'):
-        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'RANDOM')
-        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'FIFO')
-        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'LRU')
-        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'LFU')
+        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'RANDOM', codigo)
+        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'FIFO', codigo)
+        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'LRU', codigo)
+        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'LFU', codigo)
     else:
         executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar,
-                                                 politica_substituicao)
+                                                 politica_substituicao, codigo)
 else:
     print('\n\n------------------------------')
     print(
