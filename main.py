@@ -14,17 +14,25 @@ def gerar_falhas_cache(memoria_cache, index):
     """
     if ( index != 4 ):
         return -1
+    print(memoria_cache)        
     
     p = memoria_cache[0] #pega o valor binario codificado direto na list memoria_cache
-    if ( p[29]=='0'):
-        p=muda_bit(p,29,'1')
+    if ( p[33]=='0'):
+        p=muda_bit(p,33,1)
     else:
-        p=muda_bit(p,29,'0')
+        p=muda_bit(p,33,0)
 
-    p=muda_bit(p,0,'1') #sinaliza que tem um erro nessa palavra
+    p=muda_bit(p,0,1) #sinaliza que tem um erro nessa palavra
 
     
     memoria_cache[0] = p #substitui o valor binario codificado direto na list memoria_cache
+    print(memoria_cache)
+
+    if qtd_conjuntos == 1:
+        print_cache_associativo(memoria_cache)
+    else:
+        nome_mapeamento = 'Associativo Por Conjunto'
+        print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos)    
     
     return 1
 
@@ -32,7 +40,7 @@ def gerar_falhas_cache(memoria_cache, index):
 def ler_cache(memoria_cache, posicao, codigo):  
     palavra = memoria_cache[posicao]
     p, e = decodifica_palavra(palavra,codigo)
-    return p, int(palavra[0])
+    return p, int(palavra[0]), e
 
 def escreve_cache(memoria_cache, posicao, palavra, codigo):
     p = codifica_palavra(palavra,codigo)
@@ -66,10 +74,11 @@ def decodifica_palavra(palavra,codigo):
       [int] -- retorna o valor inteiro decodificado
       [int] -- 1 erro, 0 sem erro
     """
-    if (checa_paridade(palavra)==1):
-        return 0,1
+    if (checa_paridade(palavra)==1):#detectamos um erro
+        b = BitArray(bin=palavra[2:]) #houve erro, corrige invalidando a linha de cache
+        return -1, 1
     else:
-        b = BitArray(bin=palavra[2:])
+        b = BitArray(bin=palavra[2:]) #não houve erro
         return b.int, 0
 
 def muda_bit(palavra, posicao, valor):
@@ -349,8 +358,8 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
         #O ideal é inserir falhas aleatoriamente com uma dada taxa
         #1 falha em 10.000 acessos, etc
         #
-        #Nessa versão estou inserindo uma falha na 1 interação
-        #bit 2, posição 0 da cache
+        #Nessa versão estou inserindo uma falha na 4° interação
+        #bit 3, posição 0 da cache
         #
         gerar_falhas_cache(memoria_cache, index)
 
@@ -368,8 +377,8 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             if ( erro == 1 ):
                 num_falso_positivo+=1
 
-            print('Cache HIT: posiçao de memória {}, posição cache {}'.format(posicao_memoria,
-                                                                              inserir_memoria_na_posicao_cache))
+            print('Cache HIT: posiçao de memória {}, posição cache {}'.format(hex(posicao_memoria),
+                                                                              hex(inserir_memoria_na_posicao_cache)))
 
           # se for LFU então toda vez que der um HIT será incrementado o contador daquela posição
             """if politica_substituicao == 'LFU':
@@ -383,14 +392,14 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
 
         else:
             num_miss += 1
-            print('Cache MISS: posiçao de memória {}'.format(posicao_memoria))
+            print('Cache MISS: posiçao de memória {}'.format(hex(posicao_memoria)))
 
             # verifica se existe uma posição vazia na cache, se sim aloca nela a posição de memória
             posicao_vazia = existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria)
 
             if debug:
                 print('Posição da cache ainda não utilizada: {}'.format(posicao_vazia))
-                print('\nLeitura linha {}, posição de memória {}.'.format(index, posicao_memoria))
+                print('\nLeitura linha {}, posição de memória {}.'.format(index, hex(posicao_memoria)))
 
             ########
             # se posicao_vazia for < 0 então devemos executar as políticas de substituição
@@ -425,6 +434,7 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
     print('Total de memórias acessadas: {}'.format(len(posicoes_memoria_para_acessar)))
     print('Total HIT {}'.format(num_hit))
     print('Total MISS {}'.format(num_miss))
+    print('Total Falsos Positivos {}'.format(num_falso_positivo))
     taxa_cache_hit = (num_hit / len(posicoes_memoria_para_acessar)) * 100
     print('Taxa de Cache HIT {number:.{digits}f}%'.format(number=taxa_cache_hit, digits=2))
 
