@@ -5,8 +5,9 @@ from bitstring import BitArray
 contador_falsos_positivos = 0
 arq_binarios = "enderecosBinarios.txt"
 
-#
-#
+# Exemplo de comando
+#main.py --total_cache=4 --tipo_mapeamento=AS --arquivo_acesso=enderecosInteiros.txt --politica_substituicao=LRU --debug=1 
+#--codigo=PARIDADE_MSB --endereco_falha=12 --linha_tlb_falha=3 --bit_falho=5
 #
 
 def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha , bit_falho, tipo_falhas_inseridas, codigo):
@@ -14,6 +15,7 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha , b
     posição 0, bit 3 (posicao 29)
     """
     if ( index != endereco_falha ):
+        #print("endereço falha", endereco_falha)
         return -1
     #print(memoria_cache)        
 
@@ -108,7 +110,7 @@ def codifica_paridade_msb(palavra):
         PARIDADE é calculada com todos os bits de dados inclusive o MSB
         E é o flag que indica se uma falha foi inserida nessa palavra
     """
-    word = '{:033b}'.format(palavra& 0x0ffffffff) #põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+    word = '{:033b}'.format(palavra & 0x0ffffffff) #põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
     p = calcula_paridade(word,1)
     return muda_bit(word,1,p)
 
@@ -122,7 +124,7 @@ def codifica_paridade_2msb(palavra):
         PARIDADE ODD é calculada com bits 2,4,6,...
         E é o flag que indica se uma falha foi inserida nessa palavra
     """
-    word = '{:033b}'.format(palavra& 0x0ffffffff) #põe a palavra como 34 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+    word = '{:033b}'.format(palavra & 0x0ffffffff) #põe a palavra como 34 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
     #calcula paridade dos bits 1,3,5,7,...,31
     sum = 0
     for i in range(1,len(word)):
@@ -249,6 +251,7 @@ def print_cache_associativo(cache, codigo):
         palavra,erro = ler_cache(cache, posicao, codigo)
         print("|{:>14}|{:>16}|".format(hex(posicao), hex(palavra)))
     print("+-------------+-----------------+")
+    print(cache)
 
 
 def print_cache_associativo_conjunto(cache, qtd_conjuntos, codigo):
@@ -266,6 +269,7 @@ def print_cache_associativo_conjunto(cache, qtd_conjuntos, codigo):
         palavra,erro = ler_cache(cache, posicao, codigo)
         print("|{} \t|{:4}\t|\t   {:>4}|".format(posicao, num_conjunto, palavra))
     print("+-------+-------+--------------+")
+    print(cache)
 
 
 def inicializar_cache(total_cache, codigo):
@@ -348,14 +352,20 @@ def politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria
 
 
     #memoria_cache[lista_posicoes[-1]] = posicao_memoria
+    #a linha que vai ser substituída sempre está em lista_posicoes[0], o conteudo dessa linha vai ser apagado
+    #por isso, a gente salva antes, para ver se a linha substituida tinha algum erro inserido
     #aqui a gente usa a função escreve_cache para que ele salve e deixe o bit ERRO zerado
     #estamos sobreescrevendo uma posição da cache, verifica se a posição salva estava com erro inserido
     #se tiver erro inserido retorna 1
-    p,erro = ler_cache(memoria_cache, lista_posicoes[-1],codigo)
+    x = memoria_cache[lista_posicoes[0]]
+    p,erro = ler_cache(memoria_cache, lista_posicoes[0],codigo)
     escreve_cache(memoria_cache,lista_posicoes[-1],posicao_memoria,codigo)
 
     if debug:
         print('Posição Memória: {}'.format(posicao_memoria))
+        print('Posição da Cache: {}'.format(lista_posicoes[-1]))
+        print('Erro ', erro)
+        print('Valor da linha substituída', x)
         print('Conjunto: {}'.format(num_conjunto))
         print('Lista posições: {}'.format(lista_posicoes))
     return erro
@@ -435,15 +445,7 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
 
     # percorre cada uma das posições de memória que estavam no arquivo
     for index, posicao_memoria in enumerate(posicoes_memoria_para_acessar):
-        #
-        #TODO
-        #Lógica de inserção de falhas tem que ser inserida aqui
-        #O ideal é inserir falhas aleatoriamente com uma dada taxa
-        #1 falha em 10.000 acessos, etc
-        #
-        #Nessa versão estou inserindo uma falha na 4° interação
-        #bit 3, posição 0 da cache
-        #
+        
         gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas, codigo)
 
         if debug:
@@ -460,6 +462,8 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             #finaliza a simulação no primeiro falso positivo
             if ( erro == 1 ):
                 num_falso_positivo+=1
+                if debug:
+                    print("Falso Positivo, posição", index)
                 return 1
 
             if debug:
@@ -505,6 +509,8 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
                 erro = politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria, codigo)
 
         if erro == 1 : #se a linha com falha tiver sido lida, encerra a simulação
+            if debug:
+                print("Posição com falha foi substituída: ", index)
             return 0
         if qtd_conjuntos == 1:
             if debug:
@@ -677,10 +683,10 @@ politica_substituicao = args.politica_substituicao.upper()
 debug = args.debug
 step = args.step
 codigo = args.codigo
-endereco_falha = args.endereco_falha
-linha_tlb_falha = args.linha_tlb_falha
-bit_falho = args.bit_falho
-tipo_falhas_inseridas = args.tipo_falhas_inseridas
+endereco_falha = int(args.endereco_falha)
+linha_tlb_falha = int(args.linha_tlb_falha)
+bit_falho = int(args.bit_falho)
+tipo_falhas_inseridas = int(args.tipo_falhas_inseridas)
 
 
 if qtd_conjuntos <= 0:
