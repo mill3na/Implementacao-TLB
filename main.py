@@ -1,3 +1,4 @@
+
 import argparse, random, re
 from bitstring import BitArray
 
@@ -8,26 +9,30 @@ arq_binarios = "enderecosBinarios.txt"
 #
 #
 
-def gerar_falhas_cache(memoria_cache, index, numero_falhas_inseridas, frequencia_falhas_inseridas, tipo_falhas_inseridas, codigo):
+def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha , bit_falho, tipo_falhas_inseridas, codigo):
     """essa é uma versão café com leite que gera falha no index=4
     posição 0, bit 3 (posicao 29)
     """
-    if ( index != 4 ):
+    if ( index != endereco_falha ):
         return -1
     #print(memoria_cache)        
     
-    p = memoria_cache[3] #pega o valor binario codificado direto na list memoria_cache
-    if ( p[30]=='0'):
-        p=muda_bit(p,30,1)
-        p=muda_bit(p,32,1)
+    p = memoria_cache[linha_tlb_falha] #pega o valor binario codificado direto na list memoria_cache
+    if ( p[bit_falho]=='0'):
+        p=muda_bit(p,bit_falho,1)        
     else:
-        p=muda_bit(p,30,0)
-        p=muda_bit(p,32,0)
+        p=muda_bit(p,bit_falho,0)
 
+    if (tipo_falhas_inseridas=='FALHA_DUPLA'):
+        if ( p[bit_falho+1]=='0'):
+            p=muda_bit(p,bit_falho+1,1)        
+        else:
+            p=muda_bit(p,bit_falho+1,0)
+
+        
     p=muda_bit(p,0,1) #sinaliza que tem um erro nessa palavra
 
-    
-    memoria_cache[3] = p #substitui o valor binario codificado direto na list memoria_cache
+    memoria_cache[linha_tlb_falha] = p #substitui o valor binario codificado direto na list memoria_cache
     #print(memoria_cache)
     
     return 1
@@ -57,7 +62,9 @@ def codifica_palavra(palavra, codigo):
     Returns:
       [string] -- retorna um binário representado em string
     """
-    if (codigo == 'PARIDADE_SIMPLES'):
+    if (codigo == NENHUM):
+        return codifica_nenhum(palavra)
+    elif (codigo == 'PARIDADE_SIMPLES'):
         return codifica_paridade_simples(palavra)
     elif (codigo == 'PARIDADE_MSB'):
         return codifica_paridade_msb(palavra)
@@ -75,7 +82,9 @@ def decodifica_palavra(palavra,codigo):
       [int] -- retorna o valor inteiro decodificado
       [int] -- 1 erro, 0 sem erro
     """
-    if (codigo == 'PARIDADE_SIMPLES'):
+    if (codigo == NENHUM):
+        return decodifica_nenhum(palavra)
+    elif (codigo == 'PARIDADE_SIMPLES'):
         return decodifica_paridade_simples(palavra)
     elif (codigo == 'PARIDADE_MSB'):
         return decodifica_paridade_msb(palavra)
@@ -83,8 +92,15 @@ def decodifica_palavra(palavra,codigo):
         return decodifica_paridade_2msb(palavra)
 
 
+def codifica_nenhum(palavra):
+    return '{:033b}'.format(palavra& 0x1ffffffff) #põe a palavra como 33 bits em binario {string}
+
+def decodifica_nenhum(palavra):
+    b = BitArray(bin=palavra[1:]) 
+    return b.int, 0
+
 def codifica_paridade_msb(palavra):
-    """Formato | E | PARIDADE (MSB) | DADOS |
+    """Formato | E | PARIDADE (MSB) | RESTO DOS DADOS |
         PARIDADE é calculada com todos os bits de dados inclusive o MSB
         E é o flag que indica se uma falha foi inserida nessa palavra
     """
@@ -97,7 +113,7 @@ def decodifica_paridade_msb(palavra):
     return b.int, 0
 
 def codifica_paridade_2msb(palavra):
-    """Formato | E | PARIDADE EVEN (MSB) | PARIDADE ODD (MSB-1) | DADOS |
+    """Formato | E | PARIDADE EVEN (MSB) | PARIDADE ODD (MSB-1) | RESTO DOS DADOS |
         PARIDADE EVEN é calculada com bits 1,3,5,...
         PARIDADE ODD é calculada com bits 2,4,6,...
         E é o flag que indica se uma falha foi inserida nessa palavra
@@ -120,6 +136,7 @@ def codifica_paridade_2msb(palavra):
     return muda_bit(word,2,p_odd)
 
 def decodifica_paridade_2msb(palavra):
+    """Não corrigimos erros nesse código"""
     b = BitArray(bin=palavra[1:]) 
     return b.int, 0        
 
@@ -369,9 +386,10 @@ def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria,
 
     # coloca no topo da pilha a posição de memória que acabou de ser lida
     memoria_cache[lista_posicoes[-1]] = p
-    print("Posicao memoria", hex(posicao_memoria))
+    
 
     if debug:
+        print("Posicao memoria", hex(posicao_memoria))
         print('Posição Memória: {}'.format(posicao_memoria))
         print('Conjunto: {}'.format(num_conjunto))
         print('Lista posições: {}'.format(lista_posicoes))
@@ -393,11 +411,13 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
     # se o número de conjuntos for igual a zero, então estamos simulando
     # com a cache associativo!
     nome_mapeamento = 'Associativo'
-    if qtd_conjuntos == 1:
+
+    if ( qtd_conjuntos == 1 and debug ):
         print_cache_associativo(memoria_cache, codigo)
     else:
-        nome_mapeamento = 'Associativo Por Conjunto'
-        print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, codigo)
+        if (debug):
+            nome_mapeamento = 'Associativo Por Conjunto'
+            print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, codigo)
     
 
     num_hit = 0
@@ -417,9 +437,10 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
         #Nessa versão estou inserindo uma falha na 4° interação
         #bit 3, posição 0 da cache
         #
-        gerar_falhas_cache(memoria_cache, index, numero_falhas_inseridas, frequencia_falhas_inseridas, tipo_falhas_inseridas, codigo)
+        gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas, codigo)
 
-        print('\n\n\nInteração número: {}'.format(index + 1))
+        if debug:
+            print('\n\n\nInteração número: {}'.format(index + 1))
         # verificar se existe ou não a posição de memória desejada na cache, bem se o codigo detector de erro
         #identificou algum erro na leitura
         inserir_memoria_na_posicao_cache, erro = verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos, posicao_memoria, codigo)
@@ -433,7 +454,8 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             if ( erro == 1 ):
                 num_falso_positivo+=1
 
-            print('Cache HIT: posiçao de memória {}, posição cache {}'.format(hex(posicao_memoria),
+            if debug:
+                print('Cache HIT: posiçao de memória {}, posição cache {}'.format(hex(posicao_memoria),
                                                                               hex(inserir_memoria_na_posicao_cache)))
 
           # se for LFU então toda vez que der um HIT será incrementado o contador daquela posição
@@ -448,7 +470,8 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
 
         else:
             num_miss += 1
-            print('Cache MISS: posiçao de memória {}'.format(hex(posicao_memoria)))
+            if debug:
+                print('Cache MISS: posiçao de memória {}'.format(hex(posicao_memoria)))
 
             # verifica se existe uma posição vazia na cache, se sim aloca nela a posição de memória
             posicao_vazia = existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria, codigo)
@@ -474,25 +497,28 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
                 politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria, codigo)
 
         if qtd_conjuntos == 1:
-            print_cache_associativo(memoria_cache,codigo)
+            if debug:
+                print_cache_associativo(memoria_cache,codigo)
         else:
-            print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos,codigo)
+            if debug:
+                print_cache_associativo_conjunto(memoria_cache, qtd_conjuntos,codigo)
 
         if step:
             print('Tecle ENTER para processar o próximo passo:')
             input()
 
-    print('\n\n-----------------')
-    print('Resumo Mapeamento {}'.format(nome_mapeamento))
-    print('-----------------')
-    print('Política de Substituição: {}'.format(politica_substituicao))
-    print('-----------------')
-    print('Total de memórias acessadas: {}'.format(len(posicoes_memoria_para_acessar)))
-    print('Total HIT {}'.format(num_hit))
-    print('Total MISS {}'.format(num_miss))
-    print('Total Falsos Positivos {}'.format(num_falso_positivo))
-    taxa_cache_hit = (num_hit / len(posicoes_memoria_para_acessar)) * 100
-    print('Taxa de Cache HIT {number:.{digits}f}%'.format(number=taxa_cache_hit, digits=2))
+    if debug:
+        print('\n\n-----------------')
+        print('Resumo Mapeamento {}'.format(nome_mapeamento))
+        print('-----------------')
+        print('Política de Substituição: {}'.format(politica_substituicao))
+        print('-----------------')
+        print('Total de memórias acessadas: {}'.format(len(posicoes_memoria_para_acessar)))
+        print('Total HIT {}'.format(num_hit))
+        print('Total MISS {}'.format(num_miss))
+        print('Total Falsos Positivos {}'.format(num_falso_positivo))
+        taxa_cache_hit = (num_hit / len(posicoes_memoria_para_acessar)) * 100
+        print('Taxa de Cache HIT {number:.{digits}f}%'.format(number=taxa_cache_hit, digits=2))
 
 
 def executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, politica_substituicao, codigo):
@@ -613,16 +639,19 @@ parser.add_argument('--step', default=0,
                     help='Solicita a interação do usuário após cada linha processada do arquivo --step 1.')
 
 parser.add_argument('--codigo', default=0,
-                    help='Qual código será utilizado na TLB: PARIDADE, MSB_1, MSB_2')
+                    help='Qual código será utilizado na TLB: NENHUM, PARIDADE, MSB_1, MSB_2')
 
-parser.add_argument('--numero_falhas_inseridas', default=0,
+parser.add_argument('--endereco_falha', default=0,
                     help='Número de falhas a serem inseridas na simulação')
 
-parser.add_argument('--frequencia_falhas_inseridas', default=0,
+parser.add_argument('--linha_tlb_falha', default=0,
+                    help='Número de falhas a serem inseridas na simulação')
+
+parser.add_argument('--bit_falho', default=0,
                     help='Frequência na qual as falhas são inseridas')
 
 parser.add_argument('--tipo_falhas_inseridas', default=0,
-                    help='Tipo de falhas inseridas. Os parâmetros são: SIMPLES, DUPLA, DUPLA_ADJ, TRIPLA')
+                    help='Tipo de falhas inseridas. Os parâmetros são: FALHA_SIMPLES, FALHA_DUPLA, FALHA_TRIPLA')
 
 
 
@@ -637,8 +666,9 @@ politica_substituicao = args.politica_substituicao.upper()
 debug = args.debug
 step = args.step
 codigo = args.codigo
-numero_falhas_inseridas = args.numero_falhas_inseridas
-frequencia_falhas_inseridas = args.frequencia_falhas_inseridas
+endereco_falha = args.endereco_falha
+linha_tlb_falha = args.linha_tlb_falha
+bit_falho = args.bit_falho
 tipo_falhas_inseridas = args.tipo_falhas_inseridas
 
 
@@ -666,18 +696,19 @@ except IOError as identifier:
     print('\n\n------------------------------')
     print('ERRO: Arquivo \'{}\'não encontrado.'.format(arquivo_acesso))
     print('------------------------------')
-    exit()
+    exit(-1)
 
 if len(posicoes_memoria_para_acessar) == 0:
     print('\n\n------------------------------')
     print('ERRO: o arquivo {} não possui nenhuma linha com números inteiros.'.format(arquivo_acesso))
     print('------------------------------')
-    exit()
+    exit(-1)
 
-print('+====================+')
-print('| SIMULADOR DE TLB |')
-print('+====================+')
-print('+ Setando parâmetros iniciais da TLB+')
+if debug:
+    print('+====================+')
+    print('| SIMULADOR DE TLB |')
+    print('+====================+')
+    print('+ Setando parâmetros iniciais da TLB+')
 
 
 if tipo_mapeamento == 'AS':
@@ -697,7 +728,7 @@ elif tipo_mapeamento == 'AC':
             'ERRO: O número de conjuntos {} deve ser obrigatoriamente um divisor do total de memória cache disponível {}.'.format(
                 qtd_conjuntos, total_cache))
         print('------------------------------')
-        exit()
+        exit(-1)
 
     if (politica_substituicao == 'ALL'):
         executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'RANDOM', codigo)
@@ -713,7 +744,7 @@ else:
         'ERRO: O tipo de mapeamento \'{}\'não foi encontrado. \nOs valores possíveis para o parâmetro --tipo_mapeamento são: DI / AS / AC'.format(
             tipo_mapeamento))
     print('------------------------------')
-    exit()
+    exit(-1)
 
 if debug:
     print('\n')
