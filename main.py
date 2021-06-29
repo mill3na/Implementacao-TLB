@@ -345,13 +345,16 @@ def politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria
 
     #memoria_cache[lista_posicoes[-1]] = posicao_memoria
     #aqui a gente usa a função escreve_cache para que ele salve e deixe o bit ERRO zerado
-    #estamos sobreescrevendo uma posição da cache
+    #estamos sobreescrevendo uma posição da cache, verifica se a posição salva estava com erro inserido
+    #se tiver erro inserido retorna 1
+    p,erro = ler_cache(memoria_cache, lista_posicoes[-1],codigo)
     escreve_cache(memoria_cache,lista_posicoes[-1],posicao_memoria,codigo)
 
     if debug:
         print('Posição Memória: {}'.format(posicao_memoria))
         print('Conjunto: {}'.format(num_conjunto))
         print('Lista posições: {}'.format(lista_posicoes))
+    return erro
 
 
 def politica_substituicao_LRU_hit(memoria_cache, qtd_conjuntos, posicao_memoria, posicao_cache_hit, codigo):
@@ -450,9 +453,10 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             num_hit += 1
             #
             #verifica se a posição está na lista de posições falhas, se estiver incrementa o contador de falsos positivos
-            #
+            #finaliza a simulação no primeiro falso positivo
             if ( erro == 1 ):
                 num_falso_positivo+=1
+                return 1
 
             if debug:
                 print('Cache HIT: posiçao de memória {}, posição cache {}'.format(hex(posicao_memoria),
@@ -494,8 +498,10 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             elif politica_substituicao == 'LFU':
                 politica_substituicao_LFU(memoria_cache, qtd_conjuntos, posicao_memoria)'''
             elif politica_substituicao == 'LRU':
-                politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria, codigo)
+                erro = politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria, codigo)
 
+        if erro == 1 : #se a linha com falha tiver sido lida, encerra a simulação
+            return 0
         if qtd_conjuntos == 1:
             if debug:
                 print_cache_associativo(memoria_cache,codigo)
@@ -519,6 +525,7 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
         print('Total Falsos Positivos {}'.format(num_falso_positivo))
         taxa_cache_hit = (num_hit / len(posicoes_memoria_para_acessar)) * 100
         print('Taxa de Cache HIT {number:.{digits}f}%'.format(number=taxa_cache_hit, digits=2))
+    return 0
 
 
 def executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, politica_substituicao, codigo):
@@ -531,7 +538,7 @@ def executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 
     """
     # o número 1 indica que haverá apenas um único conjunto no modo associativo por conjunto
     # que é igual ao modo associativo padrão! :) SHAZAM
-    executar_mapeamento_associativo_conjunto(total_cache, 1, posicoes_memoria_para_acessar, politica_substituicao, codigo)
+    return executar_mapeamento_associativo_conjunto(total_cache, 1, posicoes_memoria_para_acessar, politica_substituicao, codigo)
 
 
 def conversao_hexa_inteiro(origem, destino):
@@ -711,14 +718,8 @@ if debug:
     print('+ Setando parâmetros iniciais da TLB+')
 
 
-if tipo_mapeamento == 'AS':
-    if (politica_substituicao == 'ALL'):
-        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'RANDOM', codigo)
-        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'FIFO', codigo)
-        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'LRU', codigo)
-        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, 'LFU', codigo)
-    else:
-        executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, politica_substituicao, codigo)
+if tipo_mapeamento == 'AS':    
+    r =executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, politica_substituicao, codigo)
 
 elif tipo_mapeamento == 'AC':
     # o número de conjuntos deve ser um divisor do total da memória
@@ -728,15 +729,8 @@ elif tipo_mapeamento == 'AC':
             'ERRO: O número de conjuntos {} deve ser obrigatoriamente um divisor do total de memória cache disponível {}.'.format(
                 qtd_conjuntos, total_cache))
         print('------------------------------')
-        exit(-1)
-
-    if (politica_substituicao == 'ALL'):
-        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'RANDOM', codigo)
-        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'FIFO', codigo)
-        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'LRU', codigo)
-        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar, 'LFU', codigo)
-    else:
-        executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar,
+        exit(-1)    
+    r = executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoes_memoria_para_acessar,
                                                  politica_substituicao, codigo)
 else:
     print('\n\n------------------------------')
@@ -762,4 +756,6 @@ if debug:
     print("Debug: {}".format(debug))
     print("Step: {}".format(step))
     print('-' * 80)
+
+exit(r)
 
