@@ -16,6 +16,8 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha , b
     if ( index != endereco_falha ):
         return -1
     #print(memoria_cache)        
+
+
     
     p = memoria_cache[linha_tlb_falha] #pega o valor binario codificado direto na list memoria_cache
     if ( p[bit_falho]=='0'):
@@ -34,7 +36,9 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha , b
 
     memoria_cache[linha_tlb_falha] = p #substitui o valor binario codificado direto na list memoria_cache
     #print(memoria_cache)
-    
+    if debug:
+        print("Falha inserida em ", endereco_falha, linha_tlb_falha, bit_falho)
+        print(memoria_cache)
     return 1
 
 
@@ -62,7 +66,7 @@ def codifica_palavra(palavra, codigo):
     Returns:
       [string] -- retorna um binário representado em string
     """
-    if (codigo == NENHUM):
+    if (codigo == 'NENHUM'):
         return codifica_nenhum(palavra)
     elif (codigo == 'PARIDADE_SIMPLES'):
         return codifica_paridade_simples(palavra)
@@ -82,7 +86,7 @@ def decodifica_palavra(palavra,codigo):
       [int] -- retorna o valor inteiro decodificado
       [int] -- 1 erro, 0 sem erro
     """
-    if (codigo == NENHUM):
+    if (codigo == 'NENHUM'):
         return decodifica_nenhum(palavra)
     elif (codigo == 'PARIDADE_SIMPLES'):
         return decodifica_paridade_simples(palavra)
@@ -93,7 +97,7 @@ def decodifica_palavra(palavra,codigo):
 
 
 def codifica_nenhum(palavra):
-    return '{:033b}'.format(palavra& 0x1ffffffff) #põe a palavra como 33 bits em binario {string}
+    return '{:033b}'.format(palavra& 0x0ffffffff) #põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
 
 def decodifica_nenhum(palavra):
     b = BitArray(bin=palavra[1:]) 
@@ -104,7 +108,7 @@ def codifica_paridade_msb(palavra):
         PARIDADE é calculada com todos os bits de dados inclusive o MSB
         E é o flag que indica se uma falha foi inserida nessa palavra
     """
-    word = '{:033b}'.format(palavra& 0x1ffffffff) #põe a palavra como 33 bits em binario {string}
+    word = '{:033b}'.format(palavra& 0x0ffffffff) #põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
     p = calcula_paridade(word,1)
     return muda_bit(word,1,p)
 
@@ -118,7 +122,7 @@ def codifica_paridade_2msb(palavra):
         PARIDADE ODD é calculada com bits 2,4,6,...
         E é o flag que indica se uma falha foi inserida nessa palavra
     """
-    word = '{:033b}'.format(palavra& 0x1ffffffff) #põe a palavra como 34 bits em binario {string}
+    word = '{:033b}'.format(palavra& 0x0ffffffff) #põe a palavra como 34 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
     #calcula paridade dos bits 1,3,5,7,...,31
     sum = 0
     for i in range(1,len(word)):
@@ -141,7 +145,7 @@ def decodifica_paridade_2msb(palavra):
     return b.int, 0        
 
 def codifica_paridade_simples(palavra):
-    word = '{:034b}'.format(palavra& 0x3ffffffff) #põe a palavra como 34 bits em binario {string}
+    word = '{:034b}'.format(palavra& 0x1ffffffff) #põe a palavra como 34 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
     p = calcula_paridade(word,2)
     return muda_bit(word,1,p)
 
@@ -239,7 +243,7 @@ def print_cache_associativo(cache, codigo):
     print("+-------------+-----------------+")
     print("|        Cache Associativo      |")
     print("+-------------+-----------------+")
-    print("|Posição Cache | Posição Memória|")
+    print("|Posição Cache | Posição Memória|")  
     print("+-------------+-----------------+")
     for posicao, valor in cache.items():
         palavra,erro = ler_cache(cache, posicao, codigo)
@@ -645,7 +649,7 @@ parser.add_argument('--debug', default=0,
 parser.add_argument('--step', default=0,
                     help='Solicita a interação do usuário após cada linha processada do arquivo --step 1.')
 
-parser.add_argument('--codigo', default=0,
+parser.add_argument('--codigo', default='PARIDADE_SIMPLES',
                     help='Qual código será utilizado na TLB: NENHUM, PARIDADE, MSB_1, MSB_2')
 
 parser.add_argument('--endereco_falha', default=0,
