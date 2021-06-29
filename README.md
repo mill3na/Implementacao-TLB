@@ -6,11 +6,17 @@ Este código simula o funcionamento de uma memória cache, com o preenchimento d
 
 - Cache de mapeamento associativo
 - Algoritmo de substituição: LRU
+- Códificação da CAM da TLB: Paridade Simples, Paridade no MSB, Paridade dos bits pares no MSB e paridade dos bits ímpares no MSB-1
+- Inserção de estatística de falhas na memória
 
 <h2> Alunos </h2>
 
 - Milena Maia
 - Walber Florêncio
+
+<h2> Orientador </h2>
+
+- Otávio Alcântara
 
 <h2> Desenvolvimento </h2>
 
