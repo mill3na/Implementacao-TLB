@@ -1,4 +1,4 @@
-import argparse, random, re
+import argparse, random, re 
 from bitstring import BitArray
 
 contador_falsos_positivos = 0
