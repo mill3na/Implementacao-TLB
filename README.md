@@ -20,6 +20,10 @@ Este código simula o funcionamento de uma memória cache, com o preenchimento d
 - [x] Contagem de Falsos Positivos
 - [ ] Mecanismo de injeção de falhas
 - [ ] Teste com código de correção de erros
+- [ ] Teste com aplicação real
+  - [x] cc1
+  - [ ] AcroRead
+  - [ ] outros
 
 <h2> Informação adicional </h2>
 
