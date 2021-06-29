@@ -9,6 +9,8 @@ arq_binarios = "enderecosBinarios.txt"
 #main.py --total_cache=4 --tipo_mapeamento=AS --arquivo_acesso=enderecosInteiros.txt --politica_substituicao=LRU --debug=1 
 #--codigo=PARIDADE_MSB --endereco_falha=12 --linha_tlb_falha=3 --bit_falho=5
 #
+#
+
 
 def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha , bit_falho, tipo_falhas_inseridas, codigo):
     """essa é uma versão café com leite que gera falha no index=4
@@ -115,7 +117,9 @@ def codifica_paridade_msb(palavra):
     return muda_bit(word,1,p)
 
 def decodifica_paridade_msb(palavra):
-    b = BitArray(bin=palavra[1:]) 
+    p = calcula_paridade(palavra,1)
+    p = muda_bit(palavra,1,p)
+    b = BitArray(bin=p[1:]) 
     return b.int, 0
 
 def codifica_paridade_2msb(palavra):
@@ -142,8 +146,21 @@ def codifica_paridade_2msb(palavra):
     return muda_bit(word,2,p_odd)
 
 def decodifica_paridade_2msb(palavra):
-    """Não corrigimos erros nesse código"""
-    b = BitArray(bin=palavra[1:]) 
+    sum = 0
+    for i in range(1,len(palavra)):
+        if (i%2 != 0):
+            sum = sum + int(palavra[i])
+    p_even = sum%2
+    #calcula paridade dos bits 2,4,6,...,32
+    sum = 0
+    for i in range(1,len(palavra)):
+        if (i%2 == 0):
+            sum = sum + int(palavra[i])
+    p_odd = sum%2
+    word = muda_bit(palavra,1,p_even)
+    word = muda_bit(word,2,p_odd)
+    
+    b = BitArray(bin=word[1:]) 
     return b.int, 0        
 
 def codifica_paridade_simples(palavra):
