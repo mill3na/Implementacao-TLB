@@ -30,7 +30,7 @@ def criar_arquivo(nome):
         print("Houve um erro na criação do arquivo.")
 
 
-arq = "traces.txt"
+arq = "traces.txt" 
 arq_inteiros = "tracesInteiros.txt"
 ler_arquivo(arq, arq_inteiros)
 criar_arquivo("tracesInteiros.txt")
