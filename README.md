@@ -24,12 +24,15 @@ Este código simula o funcionamento de uma memória cache, com o preenchimento d
 - [x] Algoritmo de substituição
 - [x] Contagem de HIT e MISS
 - [x] Contagem de Falsos Positivos
-- [ ] Mecanismo de injeção de falhas
+- [x] Mecanismo de injeção de falhas
 - [ ] Teste com código de correção de erros
+  - [x] MSB
+  - [x] MSB-1
+  - [ ] Proposta
 - [ ] Teste com aplicação real
   - [x] cc1
   - [ ] AcroRead
-  - [ ] outros
+  - [ ] Benchmark
 
 <h2> Informação adicional </h2>
 
