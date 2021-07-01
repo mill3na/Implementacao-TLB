@@ -1,4 +1,4 @@
-import argparse, random, re 
+import argparse, random, re
 from bitstring import BitArray
 
 contador_falsos_positivos = 0
@@ -20,16 +20,24 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bi
     # print(memoria_cache)
 
     p = memoria_cache[linha_tlb_falha]  # pega o valor binario codificado direto na list memoria_cache
-    if (p[bit_falho] == '0'):
-        p = muda_bit(p, bit_falho, 1)
-    else:
-        p = muda_bit(p, bit_falho, 0)
+    if (tipo_falhas_inseridas == "FALHA_SIMPLES"):
+        if (p[bit_falho] == '0'):
+            p = muda_bit(p, bit_falho, 1)
+        else:
+            p = muda_bit(p, bit_falho, 0)
 
     if (tipo_falhas_inseridas == 'FALHA_DUPLA'):
+        if (p[bit_falho] == '0'):
+            p = muda_bit(p, bit_falho, 1)
+        else:
+            p = muda_bit(p, bit_falho, 0)
+
         if (p[bit_falho + 1] == '0'):
             p = muda_bit(p, bit_falho + 1, 1)
         else:
             p = muda_bit(p, bit_falho + 1, 0)
+    else:
+        print("Opção inválida.\n")
 
     p = muda_bit(p, 0, 1)  # sinaliza que tem um erro nessa palavra
 
@@ -119,10 +127,16 @@ def codifica_paridade_msb(palavra):
 
 
 def decodifica_paridade_msb(palavra):
-    p = calcula_paridade(palavra, 1)
-    p = muda_bit(palavra, 1, p)
-    b = BitArray(bin=p[1:])
-    return b.int, 0
+    # p = calcula_paridade(palavra, 1)
+    # p = muda_bit(palavra, 1, p)
+    # b = BitArray(bin=p[1:])
+
+    if (checa_paridade(palavra, 1, 1) == 1):  # detectamos um erro
+        b = BitArray(bin=palavra[1:])  # houve erro, corrige invalidando a linha de cache
+        return -1, 1
+    else:
+        b = BitArray(bin=palavra[1:])  # não houve erro
+        return b.int, 0
 
 
 def codifica_paridade_2msb(palavra):
@@ -713,7 +727,7 @@ codigo = args.codigo
 endereco_falha = int(args.endereco_falha)
 linha_tlb_falha = int(args.linha_tlb_falha)
 bit_falho = int(args.bit_falho)
-tipo_falhas_inseridas = int(args.tipo_falhas_inseridas)
+tipo_falhas_inseridas = (args.tipo_falhas_inseridas)
 
 if qtd_conjuntos <= 0:
     print('\n\n------------------------------')
@@ -793,3 +807,4 @@ if debug:
     print('-' * 80)
 
 exit(r)
+
