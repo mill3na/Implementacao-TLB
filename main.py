@@ -127,16 +127,16 @@ def codifica_paridade_msb(palavra):
 
 
 def decodifica_paridade_msb(palavra):
-    # p = calcula_paridade(palavra, 1)
-    # p = muda_bit(palavra, 1, p)
-    # b = BitArray(bin=p[1:])
+        p = calcula_paridade(palavra, 1)
+        p = muda_bit(palavra, 1, p)
+        b = BitArray(bin=p[1:])
 
-    if (checa_paridade(palavra, 1, 1) == 1):  # detectamos um erro
+ '''   if (checa_paridade(palavra, 1, 1) == 1):  # detectamos um erro
         b = BitArray(bin=palavra[1:])  # houve erro, corrige invalidando a linha de cache
         return -1, 1
     else:
         b = BitArray(bin=palavra[1:])  # não houve erro
-        return b.int, 0
+        return b.int, 0  ''' 
 
 
 def codifica_paridade_2msb(palavra):
