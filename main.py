@@ -11,9 +11,7 @@ arq_binarios = "enderecosBinarios.txt"
 
 
 def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas, codigo):
-    """essa é uma versão café com leite que gera falha no index=4
-    posição 0, bit 3 (posicao 29)
-    """
+    
     if (index != endereco_falha):
         # print("endereço falha", endereco_falha)
         return -1
@@ -25,6 +23,10 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bi
             p = muda_bit(p, bit_falho, 1)
         else:
             p = muda_bit(p, bit_falho, 0)
+           
+    """Falta fazer aqui o tratamento pra quando a o bit de inserção for o último, pq não vai ter bit_falho+1. Então precisa verificar antes se é o último 
+    e se for, o bit_falho -1 que vai ser alterado :)
+    """
 
     if (tipo_falhas_inseridas == 'FALHA_DUPLA'):
         if (p[bit_falho] == '0'):
@@ -36,6 +38,10 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bi
             p = muda_bit(p, bit_falho + 1, 1)
         else:
             p = muda_bit(p, bit_falho + 1, 0)
+    
+    # if (tipo_falhas_inseridas == 'FALHA_TRIPLA'):
+    """Precisa inserir o cógido de falha tripla, onde os bits alterados serão o bit_falho, e seus dois vizinhos, exceto se bit_falho for o primeiro ou o último
+    """
     else:
         print("Opção inválida.\n")
 
