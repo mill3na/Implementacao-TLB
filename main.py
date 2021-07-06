@@ -2,6 +2,7 @@ import argparse, random, re
 from bitstring import BitArray
 
 contador_falsos_positivos = 0
+erro = 0
 arq_binarios = "enderecosBinarios.txt"
 
 
@@ -11,7 +12,9 @@ arq_binarios = "enderecosBinarios.txt"
 
 
 def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas, codigo):
-    
+    """essa é uma versão café com leite que gera falha no index=4
+    posição 0, bit 3 (posicao 29)
+    """
     if (index != endereco_falha):
         # print("endereço falha", endereco_falha)
         return -1
@@ -23,26 +26,107 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bi
             p = muda_bit(p, bit_falho, 1)
         else:
             p = muda_bit(p, bit_falho, 0)
-           
-    """Falta fazer aqui o tratamento pra quando a o bit de inserção for o último, pq não vai ter bit_falho+1. Então precisa verificar antes se é o último 
-    e se for, o bit_falho -1 que vai ser alterado :)
-    """
 
     if (tipo_falhas_inseridas == 'FALHA_DUPLA'):
-        if (p[bit_falho] == '0'):
-            p = muda_bit(p, bit_falho, 1)
-        else:
-            p = muda_bit(p, bit_falho, 0)
+        # verifica se a inserção de erro não está na última posição, para evitar erros do tipo index out of range
 
-        if (p[bit_falho + 1] == '0'):
-            p = muda_bit(p, bit_falho + 1, 1)
-        else:
-            p = muda_bit(p, bit_falho + 1, 0)
-    
-    # if (tipo_falhas_inseridas == 'FALHA_TRIPLA'):
-    """Precisa inserir o cógido de falha tripla, onde os bits alterados serão o bit_falho, e seus dois vizinhos, exceto se bit_falho for o primeiro ou o último
-    """
-    else:
+        if bit_falho != len(p):
+            if (p[bit_falho] == '0'):
+                p = muda_bit(p, bit_falho, 1)
+            else:
+                p = muda_bit(p, bit_falho, 0)
+
+            if (p[bit_falho + 1] == '0'):
+                p = muda_bit(p, bit_falho + 1, 1)
+            else:
+                p = muda_bit(p, bit_falho + 1, 0)
+
+        if bit_falho == len(p):
+            if (p[bit_falho] == '0'):
+                p = muda_bit(p, bit_falho, 1)
+            else:
+                p = muda_bit(p, bit_falho, 0)
+
+            if (p[bit_falho - 1] == '0'):
+                p = muda_bit(p, bit_falho - 1, 1)
+            else:
+                p = muda_bit(p, bit_falho - 1, 0)
+
+    if (tipo_falhas_inseridas == 'FALHA_TRIPLA'):
+        # verifica se a inserção de erro não está na última posição, para evitar erros do tipo index out of range
+
+        if bit_falho != len(p) and bit_falho != 2:
+            if (p[bit_falho] == '0'):
+                p = muda_bit(p, bit_falho, 1)
+            else:
+                p = muda_bit(p, bit_falho, 0)
+
+            if (p[bit_falho + 1] == '0'):
+                p = muda_bit(p, bit_falho + 1, 1)
+            else:
+                p = muda_bit(p, bit_falho + 1, 0)
+
+            if (p[bit_falho - 1] == '0'):
+                p = muda_bit(p, bit_falho - 1, 1)
+            else:
+                p = muda_bit(p, bit_falho - 1, 0)
+
+        if bit_falho == len(p):
+
+            if (p[bit_falho] == '0'):
+                p = muda_bit(p, bit_falho, 1)
+            else:
+                p = muda_bit(p, bit_falho, 0)
+
+            if (p[bit_falho + 1] == '0'):
+                p = muda_bit(p, bit_falho - 1, 1)
+            else:
+                p = muda_bit(p, bit_falho - 1, 0)
+
+            if (p[bit_falho - 1] == '0'):
+                p = muda_bit(p, bit_falho - 2, 1)
+            else:
+                p = muda_bit(p, bit_falho - 2, 0)
+
+        if bit_falho == 2 and codigo == 'PARIDADE_SIMPLES':
+            # no codigo de paridade simples, temos 34 bits. Essa vericação impede que o bit -1 seja alterado.
+            if (p[bit_falho] == '0'):
+                p = muda_bit(p, bit_falho, 1)
+            else:
+                p = muda_bit(p, bit_falho, 0)
+
+            if (p[bit_falho + 1] == '0'):
+                p = muda_bit(p, bit_falho + 1, 1)
+            else:
+                p = muda_bit(p, bit_falho + 1, 0)
+
+            if (p[bit_falho + 2] == '0'):
+                p = muda_bit(p, bit_falho + 2, 1)
+            else:
+                p = muda_bit(p, bit_falho + 2, 0)
+
+        if bit_falho == 1 and codigo != 'PARIDADE_SIMPLES':
+            # no codigo de paridade simples, temos 34 bits. Essa vericação impede que o bit -1 seja alterado.
+
+            if (p[bit_falho] == '0'):
+                p = muda_bit(p, bit_falho, 1)
+            else:
+                p = muda_bit(p, bit_falho, 0)
+
+            if (p[bit_falho + 1] == '0'):
+                p = muda_bit(p, bit_falho + 1, 1)
+            else:
+                p = muda_bit(p, bit_falho + 1, 0)
+
+            if (p[bit_falho + 2] == '0'):
+                p = muda_bit(p, bit_falho + 2, 1)
+            else:
+                p = muda_bit(p, bit_falho + 2, 0)
+
+
+
+
+    if (tipo_falhas_inseridas != 'FALHA_SIMPLES' and tipo_falhas_inseridas != 'FALHA_DUPLA' and tipo_falhas_inseridas != 'FALHA_TRIPLA'):
         print("Opção inválida.\n")
 
     p = muda_bit(p, 0, 1)  # sinaliza que tem um erro nessa palavra
@@ -50,8 +134,10 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bi
     memoria_cache[linha_tlb_falha] = p  # substitui o valor binario codificado direto na list memoria_cache
     # print(memoria_cache)
     if debug:
-        print("Falha inserida em ", endereco_falha, linha_tlb_falha, bit_falho)
+        print(f"\nTipo de falha inserida: {tipo_falhas_inseridas}.")
+        print("Falha inserida em ", endereco_falha, linha_tlb_falha, bit_falho, ".\n")
         print(memoria_cache)
+
     return 1
 
 
@@ -133,17 +219,18 @@ def codifica_paridade_msb(palavra):
 
 
 def decodifica_paridade_msb(palavra):
-        p = calcula_paridade(palavra, 1)
-        p = muda_bit(palavra, 1, p)
-        b = BitArray(bin=p[1:])
+    p = calcula_paridade(palavra, 1)
+    p = muda_bit(palavra, 1, p)
+    b = BitArray(bin=p[1:])
+    return b.int, 0
 
- '''   if (checa_paridade(palavra, 1, 1) == 1):  # detectamos um erro
-        b = BitArray(bin=palavra[1:])  # houve erro, corrige invalidando a linha de cache
-        return -1, 1
-    else:
-        b = BitArray(bin=palavra[1:])  # não houve erro
-        return b.int, 0  ''' 
 
+'''   if (checa_paridade(palavra, 1, 1) == 1):  # detectamos um erro
+       b = BitArray(bin=palavra[1:])  # houve erro, corrige invalidando a linha de cache
+       return -1, 1
+   else:
+       b = BitArray(bin=palavra[1:])  # não houve erro
+       return b.int, 0  '''
 
 def codifica_paridade_2msb(palavra):
     """Formato | E | PARIDADE EVEN (MSB) | PARIDADE ODD (MSB-1) | RESTO DOS DADOS |
@@ -687,7 +774,7 @@ def conversao_inteiro_binario(origem, destino):
 ##########################
 # O programa começa aqui!
 ##########################
-
+'''
 # parse dos parâmetros passados no comando
 parser = argparse.ArgumentParser(prog='Simulador de Cache')
 parser.add_argument('--total_cache', required=True, type=int, help='Número total de posições da memória cache.')
@@ -734,6 +821,21 @@ endereco_falha = int(args.endereco_falha)
 linha_tlb_falha = int(args.linha_tlb_falha)
 bit_falho = int(args.bit_falho)
 tipo_falhas_inseridas = (args.tipo_falhas_inseridas)
+'''
+# Ambiente controlado
+total_cache = 8
+tipo_mapeamento = 'AS'
+arquivo_acesso = "enderecosInteiros.txt"
+qtd_conjuntos = 1
+politica_substituicao = 'LRU'
+debug = 1
+step = 0
+codigo = 'PARIDADE_SIMPLES'
+endereco_falha = random.randint(0, 999)
+linha_tlb_falha = random.randint(0, 7)
+bit_falho = random.randint(2, 32)
+
+tipo_falhas_inseridas = 'FALHA_SIMPLES'
 
 if qtd_conjuntos <= 0:
     print('\n\n------------------------------')
@@ -810,7 +912,8 @@ if debug:
     print("Política de Substituição: {}".format(politica_substituicao))
     print("Debug: {}".format(debug))
     print("Step: {}".format(step))
+    print(f"Tipo de falha inserida: {tipo_falhas_inseridas}.")
+    print("Falha inserida em ", endereco_falha, linha_tlb_falha, bit_falho, ".\n")
     print('-' * 80)
 
 exit(r)
-
