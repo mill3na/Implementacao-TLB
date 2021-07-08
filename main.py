@@ -7,7 +7,7 @@ arq_binarios = "enderecosBinarios.txt"
 
 
 # Exemplo de comando
-# main.py --total_cache=4 --tipo_mapeamento=AS --arquivo_acesso=enderecosInteiros.txt --politica_substituicao=LRU --debug=1 --codigo=PARIDADE_MSB --endereco_falha=12 --linha_tlb_falha=3 --bit_falho=5 --tipo_falhas_inseridas=FALHA_SIMPLES
+# main.py --total_cache=8 --tipo_mapeamento=AS --arquivo_acesso=enderecosInteiros.txt --politica_substituicao=LRU --debug=1 --codigo=PARIDADE_MSB --endereco_falha=12 --linha_tlb_falha=3 --bit_falho=5 --tipo_falhas_inseridas=FALHA_SIMPLES
 #
 
 
