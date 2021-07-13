@@ -667,7 +667,7 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             elif politica_substituicao == 'LRU':
                 erro = politica_substituicao_LRU_miss(memoria_cache, qtd_conjuntos, posicao_memoria, codigo)
 
-        if erro == 1:  # se a linha com falha tiver sido lida, encerra a simulação
+        if erro == "1":  # se a linha com falha tiver sido lida, encerra a simulação
             #print("Posição com falha foi substituída: ", index)
            # return 0
 
@@ -853,20 +853,51 @@ linha_tlb_falha = 0
 bit_falho = 0 
 tipo_falhas_inseridas = 0
 
+def gerarAleatorios():
+    endereco_falha = random.randint(0,9)
+    linha_tlb_falha = random.randint(0, 3)
+    bit_falho = random.randint(17, 32)
+    
+    return(endereco_falha, linha_tlb_falha, bit_falho)
+
+'''total_cache = 4
+tipo_mapeamento = 'AS'
+arquivo_acesso = "controle.txt"
+qtd_conjuntos = 1
+politica_substituicao = 'LRU'
+debug = 1
+step = 0
+codigo = "NENHUM"
+endereco_falha = 0# random.randint(0,9)
+linha_tlb_falha = 0# random.randint(0, 3)
+bit_falho = 0 #random.randint(17, 32)
+tipo_falhas_inseridas = "FALHA_DUPLA"
+#endereco_falha, linha_tlb_falha, bit_falho = gerarAleatorios()'''
+
+
+
+
 # Ambiente controlado para teste com o script de repetição
-def executaSimulador(total_cache, arquivo_acesso, debug, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas):
-    #total_cache = repeticao.total_cache
+#def executaSimulador(total_cache, arquivo_acesso, debug, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas):
+def executaSimulador(total_cache, arquivo_acesso, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas):
+
+    #endereco_falha, linha_tlb_falha, bit_falho = gerarAleatorios()
+    '''endereco_falha = random.randint(0,9)
+    linha_tlb_falha = random.randint(0, 3)
+    bit_falho = random.randint(17, 32)'''
+
+    total_cache = total_cache
     #tipo_mapeamento = 'AS'
-    #arquivo_acesso = repeticao.arquivo_acesso
-    #qtd_conjuntos = 1
+    arquivo_acesso = arquivo_acesso
+    qtd_conjuntos = 1
     #politica_substituicao = 'LRU'
     #debug = 1
     #step = 0
-    #codigo = repeticao.codigo
-    #endereco_falha = repeticao.endereco_falha
-    #linha_tlb_falha = 7 #repeticao.linha_tlb_falha
-    #bit_falho = 1 #repeticao.bit_falho
-    #tipo_falhas_inseridas = 30 #repeticao.tipo_falhas_inseridas
+    codigo = codigo
+    endereco_falha = endereco_falha
+    linha_tlb_falha = linha_tlb_falha
+    bit_falho = bit_falho
+    tipo_falhas_inseridas = tipo_falhas_inseridas
 
     if qtd_conjuntos <= 0:
         print('\n\n------------------------------')
@@ -954,5 +985,5 @@ def executaSimulador(total_cache, arquivo_acesso, debug, codigo, endereco_falha,
         print("Número falsos positivos: ", fp)
         print('-' * 80)
 
-#exit(r)
+
 
