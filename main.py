@@ -589,10 +589,28 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
     num_miss = 0
     num_falso_positivo = 0
     posicao_cache_falhas = {}
+    index = 0
 
+    try:
+        f = open(arquivo_acesso, "r")
+        
+        
+    except IOError as identifier:
+        print('\n\n------------------------------')
+        print('ERRO: Arquivo \'{}\'não encontrado.'.format(arquivo_acesso))
+        print('------------------------------')
+        exit(-1)
+        
     # percorre cada uma das posições de memória que estavam no arquivo
-    for index, posicao_memoria in enumerate(posicoes_memoria_para_acessar):
-
+    #for index, posicao_memoria in enumerate(posicoes_memoria_para_acessar):
+    #with open(filename, 'rb') as f:
+    while True:
+        line = f.readline()
+        index = index + 1
+        if not line:
+            break
+        posicao_memoria = int(line)
+        
         gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas,
                            codigo)
 
@@ -623,6 +641,7 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
                 #if debug:
             #print("Falso Positivo, posição", index)
                 print_cache_associativo(memoria_cache, codigo)
+                f.close()
                 return 1 #ESSE RETURN AQUI FAZ PARAR A SIMULAÇÃO
             
            #print("Falso Positivo, posição", index)
@@ -673,6 +692,7 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
 
             if debug:
                 print("Posição com falha foi substituída: ", index)
+            f.close()
             return 0 #ESSE RETURN AQUI FAZ PARAR A SIMULAÇÃO
         
         if qtd_conjuntos == 1:
@@ -698,6 +718,8 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
         print('Total Falsos Positivos {}'.format(num_falso_positivo))
         taxa_cache_hit = (num_hit / len(posicoes_memoria_para_acessar)) * 100
         print('Taxa de Cache HIT {number:.{digits}f}%'.format(number=taxa_cache_hit, digits=2))
+
+    f.close()
     return 0
 
 
@@ -854,7 +876,22 @@ bit_falho = 0
 tipo_falhas_inseridas = 0
 
 # Ambiente controlado para teste com o script de repetição
-def executaSimulador(total_cache, arquivo_acesso, debug, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas):
+def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_falha, xlinha_tlb_falha, xbit_falho, xtipo_falhas_inseridas):
+    global total_cache, arquivo_acesso, debug, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas
+    total_cache = xtotal_cache
+    tipo_mapeamento = 'AS'
+    arquivo_acesso = xarquivo_acesso
+    qtd_conjuntos = 1
+    politica_substituicao = 'LRU'
+    debug = xdebug
+    step = 0
+    codigo = xcodigo
+    endereco_falha = xendereco_falha
+    linha_tlb_falha = xlinha_tlb_falha
+    bit_falho = xbit_falho 
+    tipo_falhas_inseridas = xtipo_falhas_inseridas
+
+
     #total_cache = repeticao.total_cache
     #tipo_mapeamento = 'AS'
     #arquivo_acesso = repeticao.arquivo_acesso
@@ -882,24 +919,13 @@ def executaSimulador(total_cache, arquivo_acesso, debug, codigo, endereco_falha,
         exit()
 
     # lê o arquivo e armazena cada uma das posições de memória que será lida em uma lista
-    try:
-        f = open(arquivo_acesso, "r")
-        posicoes_memoria_para_acessar = []
-        for posicao_memoria in f:
-            posicoes_memoria_para_acessar.append(int(re.sub(r"\r?\n?$", "", posicao_memoria, 1)))
-        f.close()
-        
-    except IOError as identifier:
-        print('\n\n------------------------------')
-        print('ERRO: Arquivo \'{}\'não encontrado.'.format(arquivo_acesso))
-        print('------------------------------')
-        exit(-1)
+    posicoes_memoria_para_acessar = []
 
-    if len(posicoes_memoria_para_acessar) == 0:
+    '''if len(posicoes_memoria_para_acessar) == 0:
         print('\n\n------------------------------')
         print('ERRO: o arquivo {} não possui nenhuma linha com números inteiros.'.format(arquivo_acesso))
         print('------------------------------')
-        exit(-1)
+        exit(-1)'''
 
     if debug:
         print('+====================+')
@@ -954,5 +980,8 @@ def executaSimulador(total_cache, arquivo_acesso, debug, codigo, endereco_falha,
         print("Número falsos positivos: ", fp)
         print('-' * 80)
 
+
+
 #exit(r)
+
 
