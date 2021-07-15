@@ -2,23 +2,20 @@ import argparse, random, re
 from bitstring import BitArray
 
 contador_falsos_positivos = 0
-erro = 0
-import argparse, random, re
-from bitstring import BitArray
-
-contador_falsos_positivos = 0
 num_falso_positivo = 0
 erro = 0
 arq_binarios = "enderecosBinarios.txt"
 
 
-# Exemplo de comando pra teste passando os argumentos no teste sem o script de repetição :)
+# Exemplo de comando pra teste passando os argumentos :)
 # main.py --total_cache=8 --tipo_mapeamento=AS --arquivo_acesso=enderecosInteiros.txt --politica_substituicao=LRU --debug=1 --codigo=PARIDADE_MSB --endereco_falha=12 --linha_tlb_falha=3 --bit_falho=5 --tipo_falhas_inseridas=FALHA_SIMPLES
 #
 
 
 def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas, codigo):
-
+    """essa é uma versão café com leite que gera falha no index=4
+    posição 0, bit 3 (posicao 29)
+    """
     if (index != endereco_falha):
         # print("endereço falha", endereco_falha)
         return -1
@@ -134,16 +131,6 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bi
         print("Opção inválida.\n")
 
     p = muda_bit(p, 0, 1)
-    '''
-    if codigo == 'PARIDADE_SIMPLES' or 'NENHUM':
-       p = muda_bit(p, 0, 1)  # sinaliza que tem um erro nessa palavra
-        
-    if codigo == 'PARIDADE_MSB' or 'PARIDADE_2MSB':
-       p = muda_bit(p, 0, 0)  # mantém a flag de erro igual a 0'''
-
-
-
-
 
 
     memoria_cache[linha_tlb_falha] = p  # substitui o valor binario codificado direto na list memoria_cache
@@ -188,8 +175,24 @@ def codifica_palavra(palavra, codigo):
         return codifica_paridade_simples(palavra)
     elif (codigo == 'PARIDADE_MSB'):
         return codifica_paridade_msb(palavra)
-    else:
+    elif (codigo == 'PARIDADE_2MSB'):
         return codifica_paridade_2msb(palavra)
+    elif (codigo == 'PARIDADE_MSB4'):
+        return codifica_paridade_msb4(palavra)
+    elif (codigo == 'PARIDADE_MSB8'):
+        return codifica_paridade_msb8(palavra)
+    elif (codigo == 'PARIDADE_MSB12'):
+        return codifica_paridade_msb12(palavra)
+    elif (codigo == 'PARIDADE_MSB16'):
+        return codifica_paridade_msb16(palavra)
+    elif (codigo == 'PARIDADE_2MSB4'):
+        return codifica_paridade_2msb4(palavra)
+    elif (codigo == 'PARIDADE_2MSB8'):
+        return codifica_paridade_2msb8(palavra)
+    elif (codigo == 'PARIDADE_2MSB12'):
+        return codifica_paridade_2msb12(palavra)
+    else:
+        return codifica_paridade_2msb16(palavra)  
 
 
 def decodifica_palavra(palavra, codigo):
@@ -208,9 +211,25 @@ def decodifica_palavra(palavra, codigo):
         return decodifica_paridade_simples(palavra)
     elif (codigo == 'PARIDADE_MSB'):
         return decodifica_paridade_msb(palavra)
-    else:
+    elif (codigo == 'PARIDADE_2MSB'):
         return decodifica_paridade_2msb(palavra)
-
+    elif (codigo == 'PARIDADE_MSB4'):
+        return decodifica_paridade_msb4(palavra)
+    elif (codigo == 'PARIDADE_MSB8'):
+        return decodifica_paridade_msb8(palavra)
+    elif (codigo == 'PARIDADE_MSB12'):
+        return decodifica_paridade_msb12(palavra)
+    elif (codigo == 'PARIDADE_MSB16'):
+        return decodifica_paridade_msb16(palavra)
+    elif (codigo == 'PARIDADE_2MSB4'):
+        return decodifica_paridade_2msb4(palavra)
+    elif (codigo == 'PARIDADE_2MSB8'):
+        return decodifica_paridade_2msb8(palavra)
+    elif (codigo == 'PARIDADE_2MSB12'):
+        return decodifica_paridade_2msb12(palavra)
+    else:
+        return decodifica_paridade_2msb16(palavra)
+    
 
 def codifica_nenhum(palavra):
     return '{:033b}'.format(
@@ -240,6 +259,72 @@ def decodifica_paridade_msb(palavra):
     return b.int, 0
 
 
+def codifica_paridade_msb4(palavra):
+    """Formato | E | PARIDADE (MSB com os 4 LSB) | RESTO DOS DADOS |
+        PARIDADE é calculada com os 4 bits menos significativos de dados
+        E é o flag que indica se uma falha foi inserida nessa palavra
+    """
+    word = '{:033b}'.format(
+        palavra & 0x0ffffffff)  # põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+    p = calcula_paridade(word, 29)
+    return muda_bit(word, 1, p)
+
+def decodifica_paridade_msb4(palavra):
+    p = calcula_paridade(palavra, 29)
+    p = muda_bit(palavra, 1, p)
+    b = BitArray(bin=p[1:])
+    return b.int, 0
+
+def codifica_paridade_msb8(palavra):
+    """Formato | E | PARIDADE (MSB com os 8 LSB) | RESTO DOS DADOS |
+        PARIDADE é calculada com os 8 bits menos significativos de dados
+        E é o flag que indica se uma falha foi inserida nessa palavra
+    """
+    word = '{:033b}'.format(
+        palavra & 0x0ffffffff)  # põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+    p = calcula_paridade(word, 25)
+    return muda_bit(word, 1, p)
+
+def decodifica_paridade_msb8(palavra):
+    p = calcula_paridade(palavra, 25)
+    p = muda_bit(palavra, 1, p)
+    b = BitArray(bin=p[1:])
+    return b.int, 0
+
+def codifica_paridade_msb12(palavra):
+    """Formato | E | PARIDADE (MSB com os 12 LSB) | RESTO DOS DADOS |
+        PARIDADE é calculada com os 12 bits menos significativos de dados
+        E é o flag que indica se uma falha foi inserida nessa palavra
+    """
+    word = '{:033b}'.format(
+        palavra & 0x0ffffffff)  # põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+    p = calcula_paridade(word, 21)
+    return muda_bit(word, 1, p)
+
+def decodifica_paridade_msb12(palavra):
+    p = calcula_paridade(palavra, 21)
+    p = muda_bit(palavra, 1, p)
+    b = BitArray(bin=p[1:])
+    return b.int, 0
+
+
+def codifica_paridade_msb16(palavra):
+    """Formato | E | PARIDADE (MSB com os 16 LSB) | RESTO DOS DADOS |
+        PARIDADE é calculada com os 16 bits menos significativos de dados
+        E é o flag que indica se uma falha foi inserida nessa palavra
+    """
+    word = '{:033b}'.format(
+        palavra & 0x0ffffffff)  # põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+    p = calcula_paridade(word, 17)
+    return muda_bit(word, 1, p)
+
+def decodifica_paridade_msb16(palavra):
+    p = calcula_paridade(palavra, 17)
+    p = muda_bit(palavra, 1, p)
+    b = BitArray(bin=p[1:])
+    return b.int, 0
+
+
 '''   if (checa_paridade(palavra, 1, 1) == 1):  # detectamos um erro
        b = BitArray(bin=palavra[1:])  # houve erro, corrige invalidando a linha de cache
        return -1, 1
@@ -254,7 +339,7 @@ def codifica_paridade_2msb(palavra):
         E é o flag que indica se uma falha foi inserida nessa palavra
     """
     word = '{:033b}'.format(
-        palavra & 0x0ffffffff)  # põe a palavra como 34 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+        palavra & 0x0ffffffff)  # põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
     # calcula paridade dos bits 1,3,5,7,...,31
     sum = 0
     for i in range(1, len(word)):
@@ -274,6 +359,7 @@ def codifica_paridade_2msb(palavra):
 # odd é impar, even é par
 
 def decodifica_paridade_2msb(palavra):
+    # calcula paridade dos bits 1,3,5,7,...,31
     sum = 0
     for i in range(1, len(palavra)):
         if (i % 2 != 0):
@@ -282,6 +368,182 @@ def decodifica_paridade_2msb(palavra):
     # calcula paridade dos bits 2,4,6,...,32
     sum = 0
     for i in range(1, len(palavra)):
+        if (i % 2 == 0):
+            sum = sum + int(palavra[i])
+    p_odd = sum % 2
+    word = muda_bit(palavra, 1, p_even)
+    word = muda_bit(word, 2, p_odd)
+
+    b = BitArray(bin=word[1:])
+    return b.int, 0
+
+def codifica_paridade_2msb4(palavra):
+    """Formato | E | PARIDADE EVEN (MSB) | PARIDADE ODD (MSB-1) | RESTO DOS DADOS |
+        PARIDADE EVEN é calculada com bits 1 e 3
+        PARIDADE ODD é calculada com bits 2 e 4
+        E é o flag que indica se uma falha foi inserida nessa palavra
+    """
+    word = '{:033b}'.format(
+        palavra & 0x0ffffffff)  # põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+    # calcula paridade dos bits 1 e 3
+    sum = 0
+    for i in range(29, len(word)):
+        if (i % 2 != 0):
+            sum = sum + int(word[i])
+    p_even = sum % 2
+    # calcula paridade dos bits 2 e 4
+    sum = 0
+    for i in range(29, len(word)):
+        if (i % 2 == 0):
+            sum = sum + int(word[i])
+    p_odd = sum % 2
+    word = muda_bit(word, 1, p_even)
+
+    return muda_bit(word, 2, p_odd)
+
+
+def decodifica_paridade_2msb4(palavra):
+    # calcula paridade dos bits 1 e 3
+    sum = 0
+    for i in range(29, len(palavra)):
+        if (i % 2 != 0):
+            sum = sum + int(palavra[i])
+    p_even = sum % 2
+    # calcula paridade dos bits 2 e 4
+    sum = 0
+    for i in range(29, len(palavra)):
+        if (i % 2 == 0):
+            sum = sum + int(palavra[i])
+    p_odd = sum % 2
+    word = muda_bit(palavra, 1, p_even)
+    word = muda_bit(word, 2, p_odd)
+
+    b = BitArray(bin=word[1:])
+    return b.int, 0
+
+def codifica_paridade_2msb8(palavra):
+    """Formato | E | PARIDADE EVEN (MSB) | PARIDADE ODD (MSB-1) | RESTO DOS DADOS |
+        PARIDADE EVEN é calculada com bits 1, 3, 5 e 7
+        PARIDADE ODD é calculada com bits 2, 4, 6 e 8
+        E é o flag que indica se uma falha foi inserida nessa palavra
+    """
+    word = '{:033b}'.format(
+        palavra & 0x0ffffffff)  # põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+    # calcula paridade dos bits 1, 3, 5 e 7
+    sum = 0
+    for i in range(25, len(word)):
+        if (i % 2 != 0):
+            sum = sum + int(word[i])
+    p_even = sum % 2
+    # calcula paridade dos bits 2, 4, 6 e 8
+    sum = 0
+    for i in range(25, len(word)):
+        if (i % 2 == 0):
+            sum = sum + int(word[i])
+    p_odd = sum % 2
+    word = muda_bit(word, 1, p_even)
+
+    return muda_bit(word, 2, p_odd)
+
+
+def decodifica_paridade_2msb8(palavra):
+    # calcula paridade dos bits 1, 3, 5 e 7
+    sum = 0
+    for i in range(25, len(palavra)):
+        if (i % 2 != 0):
+            sum = sum + int(palavra[i])
+    p_even = sum % 2
+    # calcula paridade dos bits 2, 4, 6 e 8
+    sum = 0
+    for i in range(25, len(palavra)):
+        if (i % 2 == 0):
+            sum = sum + int(palavra[i])
+    p_odd = sum % 2
+    word = muda_bit(palavra, 1, p_even)
+    word = muda_bit(word, 2, p_odd)
+
+    b = BitArray(bin=word[1:])
+    return b.int, 0
+
+def codifica_paridade_2msb12(palavra):
+    """Formato | E | PARIDADE EVEN (MSB) | PARIDADE ODD (MSB-1) | RESTO DOS DADOS |
+        PARIDADE EVEN é calculada com bits 1, 3,..., 11
+        PARIDADE ODD é calculada com bits 2, 4,..., 12
+        E é o flag que indica se uma falha foi inserida nessa palavra
+    """
+    word = '{:033b}'.format(
+        palavra & 0x0ffffffff)  # põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+    # calcula paridade dos bits 1, 3,..., 11.
+    sum = 0
+    for i in range(21, len(word)):
+        if (i % 2 != 0):
+            sum = sum + int(word[i])
+    p_even = sum % 2
+    # calcula paridade dos bits 2, 4,..., 12.
+    sum = 0
+    for i in range(21, len(word)):
+        if (i % 2 == 0):
+            sum = sum + int(word[i])
+    p_odd = sum % 2
+    word = muda_bit(word, 1, p_even)
+
+    return muda_bit(word, 2, p_odd)
+
+
+def decodifica_paridade_2msb12(palavra):
+    # calcula paridade dos bits 1, 3,..., 11.
+    sum = 0
+    for i in range(21, len(palavra)):
+        if (i % 2 != 0):
+            sum = sum + int(palavra[i])
+    p_even = sum % 2
+    # calcula paridade dos bits 2, 4,..., 12.
+    sum = 0
+    for i in range(21, len(palavra)):
+        if (i % 2 == 0):
+            sum = sum + int(palavra[i])
+    p_odd = sum % 2
+    word = muda_bit(palavra, 1, p_even)
+    word = muda_bit(word, 2, p_odd)
+
+    b = BitArray(bin=word[1:])
+    return b.int, 0
+
+def codifica_paridade_2msb16(palavra):
+    """Formato | E | PARIDADE EVEN (MSB) | PARIDADE ODD (MSB-1) | RESTO DOS DADOS |
+        PARIDADE EVEN é calculada com bits 1, 3,..., 13 e 15
+        PARIDADE ODD é calculada com bits 2, 4,..., 14 e 16
+        E é o flag que indica se uma falha foi inserida nessa palavra
+    """
+    word = '{:033b}'.format(
+        palavra & 0x0ffffffff)  # põe a palavra como 33 bits em binario {string}, deixo o bit 0 em 0 (flag de erro)
+    # calcula paridade dos bits 1, 3,..., 13 e 15.
+    sum = 0
+    for i in range(17, len(word)):
+        if (i % 2 != 0):
+            sum = sum + int(word[i])
+    p_even = sum % 2
+    # calcula paridade dos bits 2, 4,..., 14 e 16.
+    sum = 0
+    for i in range(17, len(word)):
+        if (i % 2 == 0):
+            sum = sum + int(word[i])
+    p_odd = sum % 2
+    word = muda_bit(word, 1, p_even)
+
+    return muda_bit(word, 2, p_odd)
+
+
+def decodifica_paridade_2msb16(palavra):
+    # calcula paridade dos bits 1, 3,..., 13 e 15.
+    sum = 0
+    for i in range(17, len(palavra)):
+        if (i % 2 != 0):
+            sum = sum + int(palavra[i])
+    p_even = sum % 2
+    # calcula paridade dos bits 2, 4,..., 14 e 16.
+    sum = 0
+    for i in range(17, len(palavra)):
         if (i % 2 == 0):
             sum = sum + int(palavra[i])
     p_odd = sum % 2
@@ -357,8 +619,6 @@ def checa_paridade(palavra, posicao_inicial, posicao_paridade):
     # print("com erro")
     return 1  # com erro
 
-
-"""comando de teste: python main.py --total_cache 4 --tipo_mapeamento=AS --arquivo_acesso=enderecosInteiros.txt --debug 1 --politica_substituicao LRU"""
 
 
 def existe_posicao_vazia(memoria_cache, qtd_conjuntos, posicao_memoria, codigo):
@@ -878,7 +1138,7 @@ linha_tlb_falha = 0
 bit_falho = 0 
 tipo_falhas_inseridas = 0
 
-# Ambiente para teste com o script de repetição
+# Ambiente controlado para teste com o script de repetição
 def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_falha, xlinha_tlb_falha, xbit_falho, xtipo_falhas_inseridas):
     global total_cache, arquivo_acesso, debug, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas
     total_cache = xtotal_cache
@@ -893,20 +1153,6 @@ def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_f
     linha_tlb_falha = xlinha_tlb_falha
     bit_falho = xbit_falho 
     tipo_falhas_inseridas = xtipo_falhas_inseridas
-
-
-    #total_cache = repeticao.total_cache
-    #tipo_mapeamento = 'AS'
-    #arquivo_acesso = repeticao.arquivo_acesso
-    #qtd_conjuntos = 1
-    #politica_substituicao = 'LRU'
-    #debug = 1
-    #step = 0
-    #codigo = repeticao.codigo
-    #endereco_falha = repeticao.endereco_falha
-    #linha_tlb_falha = 7 #repeticao.linha_tlb_falha
-    #bit_falho = 1 #repeticao.bit_falho
-    #tipo_falhas_inseridas = 30 #repeticao.tipo_falhas_inseridas
 
     if qtd_conjuntos <= 0:
         print('\n\n------------------------------')
@@ -982,4 +1228,3 @@ def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_f
             print("Não houve!")
         print("Número falsos positivos: ", fp)
         print('-' * 80)
-
