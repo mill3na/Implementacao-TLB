@@ -4,6 +4,8 @@ from bitstring import BitArray
 contador_falsos_positivos = 0
 num_falso_positivo = 0
 erro = 0
+fp = 0
+r = 0
 arq_binarios = "enderecosBinarios.txt"
 
 
@@ -13,9 +15,7 @@ arq_binarios = "enderecosBinarios.txt"
 
 
 def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas, codigo):
-    """essa é uma versão café com leite que gera falha no index=4
-    posição 0, bit 3 (posicao 29)
-    """
+    
     if (index != endereco_falha):
         # print("endereço falha", endereco_falha)
         return -1
@@ -131,6 +131,16 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bi
         print("Opção inválida.\n")
 
     p = muda_bit(p, 0, 1)
+    '''
+    if codigo == 'PARIDADE_SIMPLES' or 'NENHUM':
+       p = muda_bit(p, 0, 1)  # sinaliza que tem um erro nessa palavra
+        
+    if codigo == 'PARIDADE_MSB' or 'PARIDADE_2MSB':
+       p = muda_bit(p, 0, 0)  # mantém a flag de erro igual a 0'''
+
+
+
+
 
 
     memoria_cache[linha_tlb_falha] = p  # substitui o valor binario codificado direto na list memoria_cache
@@ -325,12 +335,6 @@ def decodifica_paridade_msb16(palavra):
     return b.int, 0
 
 
-'''   if (checa_paridade(palavra, 1, 1) == 1):  # detectamos um erro
-       b = BitArray(bin=palavra[1:])  # houve erro, corrige invalidando a linha de cache
-       return -1, 1
-   else:
-       b = BitArray(bin=palavra[1:])  # não houve erro
-       return b.int, 0  '''
 
 def codifica_paridade_2msb(palavra):
     """Formato | E | PARIDADE EVEN (MSB) | PARIDADE ODD (MSB-1) | RESTO DOS DADOS |
@@ -715,7 +719,7 @@ def verifica_posicao_em_cache_associativo_conjunto(memoria_cache, qtd_conjuntos,
     num_conjunto = int(posicao_memoria) % int(qtd_conjuntos)
 
     p = codifica_palavra(posicao_memoria, codigo)
-    # CODIFFICA A POSICAO MEMORIA PARA COMPARAR COM O CONTEUDO DA CAM DA TLB
+    # CODIFICA A POSICAO MEMORIA PARA COMPARAR COM O CONTEUDO DA CAM DA TLB
     while num_conjunto < len(memoria_cache):
         d = memoria_cache[num_conjunto]
         if d[1:] == p[1:]:
@@ -834,6 +838,7 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
       posicoes_memoria_para_acessar {list} -- quais são as posições de memória que devem ser acessadas
       politica_substituicao {str} -- Qual é a política para substituição caso a posição de memória desejada não esteja na cache E não exista espaço vazio
     """
+    global erro
 
     memoria_cache = inicializar_cache(total_cache, codigo)
 
@@ -892,15 +897,17 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             #num_falsos_positivos = verificar_falsos_positivos(posicoes_memoria_para_acessar, contador_falsos_positivos, total_cache)
             # verifica se a posição está na lista de posições falhas, se estiver incrementa o contador de falsos positivos
             # finaliza a simulação no primeiro falso positivo
-            print("Erro: ", erro)
+            #print("Erro: ", erro)
+            
             
             if debug:
                 print('Cache HIT: posiçao de memória {}, posição cache {}'.format(hex(posicao_memoria),
                                                                                   hex(
                                                                                       inserir_memoria_na_posicao_cache)))
-              
+            
             if erro == 1:
                 num_falso_positivo += 1
+                print(r)
                 #if debug:
             #print("Falso Positivo, posição", index)
                 print_cache_associativo(memoria_cache, codigo)
@@ -909,12 +916,7 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
             
            #print("Falso Positivo, posição", index)
 
-                                                                                
-
-            # se for LFU então toda vez que der um HIT será incrementado o contador daquela posição
-            """if politica_substituicao == 'LFU':
-                contador_lfu[inserir_memoria_na_posicao_cache] += 1
-                imprimir_contador_lfu()"""
+                                                                        
 
             # se for LRU então toda vez que der um HIT será incrementado o contador daquela posição
             if politica_substituicao == 'LRU':
@@ -923,6 +925,9 @@ def executar_mapeamento_associativo_conjunto(total_cache, qtd_conjuntos, posicoe
 
         else:
             num_miss += 1
+            #print("Erro: ", erro)
+        
+
             if debug:
                 print('Cache MISS: posiçao de memória {}'.format(hex(posicao_memoria)))
 
@@ -1126,7 +1131,7 @@ tipo_falhas_inseridas = (args.tipo_falhas_inseridas)
 '''
 
 total_cache = 0
-tipo_mapeamento = 'AS'
+tipo_mapeamento = 'AC'
 arquivo_acesso = " "
 qtd_conjuntos = 1
 politica_substituicao = 'LRU'
@@ -1140,9 +1145,9 @@ tipo_falhas_inseridas = 0
 
 # Ambiente controlado para teste com o script de repetição
 def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_falha, xlinha_tlb_falha, xbit_falho, xtipo_falhas_inseridas):
-    global total_cache, arquivo_acesso, debug, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas
+    global total_cache, arquivo_acesso, debug, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas, r
     total_cache = xtotal_cache
-    tipo_mapeamento = 'AS'
+    tipo_mapeamento = 'AC'
     arquivo_acesso = xarquivo_acesso
     qtd_conjuntos = 1
     politica_substituicao = 'LRU'
@@ -1153,6 +1158,8 @@ def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_f
     linha_tlb_falha = xlinha_tlb_falha
     bit_falho = xbit_falho 
     tipo_falhas_inseridas = xtipo_falhas_inseridas
+
+
 
     if qtd_conjuntos <= 0:
         print('\n\n------------------------------')
@@ -1185,6 +1192,7 @@ def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_f
     if tipo_mapeamento == 'AS':
         r = executar_mapeamento_associativo(total_cache, posicoes_memoria_para_acessar, politica_substituicao, codigo)
 
+        
     elif tipo_mapeamento == 'AC':
         # o número de conjuntos deve ser um divisor do total da memória
         if total_cache % qtd_conjuntos != 0:
@@ -1203,7 +1211,7 @@ def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_f
                 tipo_mapeamento))
         print('------------------------------')
         exit(-1)
-
+    
     if debug:
         print('\n')
         print('-' * 80)
@@ -1211,7 +1219,6 @@ def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_f
         print('-' * 80)
         print("Arquivo com as posições de memória: {}".format(arquivo_acesso))
         print('Número de posições de memória: {}'.format(len(posicoes_memoria_para_acessar)))
-        #print('As posições são: {}'.format(posicoes_memoria_para_acessar))
         print('Tamanho total da cache: {}'.format(total_cache))
         print("Tipo Mapeamento: {}".format(tipo_mapeamento))
         if tipo_mapeamento != 'AS':
@@ -1221,10 +1228,7 @@ def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_f
         print("Step: {}".format(step))
         print("Tipo de falha inserida: ", tipo_falhas_inseridas)
         print("Falha inserida em ", endereco_falha, linha_tlb_falha, bit_falho)
-        fp = int(erro)
-        if fp == 1:
-            fp = fp + 1
-        if fp == 0:
-            print("Não houve!")
-        print("Número falsos positivos: ", fp)
+        #print("Número falsos positivos: ", r)
         print('-' * 80)
+
+    return r
