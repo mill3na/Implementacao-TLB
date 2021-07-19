@@ -30,7 +30,7 @@ Este código simula o funcionamento de uma memória cache, com o preenchimento d
   - [x] Paridade simples
   - [x] MSB
   - [x] MSB-1
-  - [ ] Proposta
+  - [x] Proposta
 - [ ] Teste com aplicação real
   - [x] cc1 (testagem)
   - [ ] Benchmark (experimentos finais)
