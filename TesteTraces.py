@@ -6,7 +6,7 @@ def ler_arquivo(traces_hexadecimal, traces_inteiros):
     try:
         a = open(traces_hexadecimal, 'r')
     except:
-        print("Não sei cadê o arquivo.")
+        print("Arquivo não encontrado!")
     else:
         contador = 0
         posicoes_valores = {"posição": 0, "valor": 0}
