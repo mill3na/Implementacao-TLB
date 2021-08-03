@@ -1,5 +1,4 @@
 # Este script roda o simulador.py e seta os parâmetros para nenhuma proteção e falha dupla
-import csv
 import simulador
 import random
 from simulador import executaSimulador
