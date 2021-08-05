@@ -1,8 +1,7 @@
 # Este script roda o main.py e seta os parâmetros, configurados para encontrar um falso positivo.
-#import csv
-import simulador
+import main
 import random
-from simulador import executaSimulador
+from main import executaSimulador
 
 #Declaração dos parâmetros fixos
 total_cache = 8
@@ -33,9 +32,9 @@ for i in range(0,1):
     bit_falho = 31 #random.randint(0, 31)
     tipo_falhas_inseridas = "FALHA_DUPLA"
 
-    # chama o simulador.py, executa e contabiliza o retorno
+    # chama o main.py, executa e contabiliza o retorno
     
-    simulador.executaSimulador(total_cache, arquivo_acesso, debug, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas)
+    main.executaSimulador(total_cache, arquivo_acesso, debug, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas)
     print("iteração:",i+1)
     print("codigo: nenhum")
     print("falha dupla")
