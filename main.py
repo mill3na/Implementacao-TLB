@@ -1,7 +1,7 @@
 import argparse, random, re
 from bitstring import BitArray
 
-contador_falsos_positivos = False
+contador_falsos_positivos = 0
 num_falso_positivo = 0
 erro = 0
 fp = 0
@@ -130,24 +130,34 @@ def gerar_falhas_cache(memoria_cache, index, endereco_falha, linha_tlb_falha, bi
     '''
     if codigo == 'PARIDADE_SIMPLES' or 'NENHUM':
        p = muda_bit(p, 0, 1)  # sinaliza que tem um erro nessa palavra
-
     if codigo == 'PARIDADE_MSB' or 'PARIDADE_2MSB':
        p = muda_bit(p, 0, 0)  # mantém a flag de erro igual a 0'''
 
     memoria_cache[linha_tlb_falha] = p  # substitui o valor binario codificado direto na list memoria_cache
     # print(memoria_cache)
+
+    nova =  muda_bit(p, 0, 0)
+
+    if (nova in memoria_cache.values()):
+
+        print("Houve falso positivo!")
+
+        global contador_falsos_positivos
+        contador_falsos_positivos = 1
+
+        global fp
+        fp = fp + contador_falsos_positivos
+        print("Número de falsos positivos:",fp)
+
+        return 1
+
+
     if debug:
         print("\nTipo de falha inserida:", tipo_falhas_inseridas)
         print("Falha inserida em ", endereco_falha, linha_tlb_falha, bit_falho, ".\n")
         print(memoria_cache)
 
-        nova =  muda_bit(p, 0, 0)
 
-        if (nova in memoria_cache.values()):
-            print('\033[31mFalso positivo!\033[m')
-            global contador_falsos_positivos
-            contador_falsos_positivos = True
-            return 1
     return 1
 
 
@@ -1162,10 +1172,10 @@ def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_f
     global total_cache, arquivo_acesso, debug, codigo, endereco_falha, linha_tlb_falha, bit_falho, tipo_falhas_inseridas, r
     total_cache = xtotal_cache
     tipo_mapeamento = 'AC'
-    arquivo_acesso = "enderecosInteiros.txt"
+    arquivo_acesso = xarquivo_acesso
     qtd_conjuntos = 1
     politica_substituicao = 'LRU'
-    debug = 1
+    debug = xdebug
     step = 0
     codigo = xcodigo
     endereco_falha = xendereco_falha
@@ -1242,5 +1252,5 @@ def executaSimulador(xtotal_cache, xarquivo_acesso, xdebug, xcodigo, xendereco_f
         print("Falha inserida em ", endereco_falha, linha_tlb_falha, bit_falho)
         print("Número falsos positivos: ", contador_falsos_positivos)
         print('-' * 80)
-
+        
     return r
