@@ -30,7 +30,7 @@ for i in range(0,1000):
     codigo = "PARIDADE_MSB"
     endereco_falha = random.randint(0, linhas)
     linha_tlb_falha = random.randint(1,7)
-    bit_falho = random.randint(0, 31)
+    bit_falho = random.randint(1, 31)
     tipo_falhas_inseridas = "FALHA_TRIPLA"
 
     # chama o main.py, executa e contabiliza o retorno
