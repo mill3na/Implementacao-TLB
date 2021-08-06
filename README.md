@@ -26,7 +26,7 @@ Este código simula o funcionamento de uma memória cache, com o preenchimento d
 - [x] Contagem de HIT e MISS
 - [x] Tratamento de Falsos Positivos
 - [x] Mecanismo de injeção de falhas
-- [ ] Teste com código de correção de erros
+- [x] Teste com código de correção de erros
   - [x] Paridade simples
   - [x] MSB
   - [x] MSB-1
@@ -38,3 +38,5 @@ Este código simula o funcionamento de uma memória cache, com o preenchimento d
 <h2> Informação adicional </h2>
 
 Código adaptado de Anselmo Battisti.
+
+Adicionados scripts de teste já configurados
