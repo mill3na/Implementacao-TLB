@@ -31,9 +31,9 @@ Este código simula o funcionamento de uma memória cache, com o preenchimento d
   - [x] MSB
   - [x] MSB-1
   - [x] Proposta
-- [ ] Teste com aplicação real
+- [x] Teste com aplicação real
   - [x] cc1 (testagem)
-  - [ ] Benchmark (experimentos finais)
+  - [x] Benchmark (experimentos finais)
 
 <h2> Informação adicional </h2>
 
